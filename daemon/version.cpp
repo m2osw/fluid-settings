@@ -1,11 +1,11 @@
-// Copyright (c) 2011-2022  Made to Order Software Corp.  All Rights Reserved
+// Copyright (c) 2012-2022  Made to Order Software Corp.  All Rights Reserved
 //
-// https://snapwebsites.org/project/fluid-settings
+// https://snapwebsites.org/project/eventdispatcher
 // contact@m2osw.com
 //
-// This program is free software: you can redistribute it and/or modify
+// This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
 //
 // This program is distributed in the hope that it will be useful,
@@ -14,22 +14,22 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /** \file
- * \brief The version of the fluid settings library at compile time.
+ * \brief The version of the event dispatcher at compile time.
  *
- * This file records the fluid settings library version at
- * compile time.
+ * This file records the event dispatcher library version at compile time.
  *
- * The `#define`s give you the library version at the time you are compiling.
+ * The macros give you the library version at the time you are compiling.
  * The functions allow you to retrieve the version of a dynamically linked
  * library.
  */
 
 // self
 //
-#include    "eventdispatcher/fluid-settings/version.h"
+#include    "eventdispatcher/version.h"
 
 
 // last include
@@ -38,7 +38,7 @@
 
 
 
-namespace fluid_settings
+namespace ed
 {
 
 
@@ -53,7 +53,7 @@ namespace fluid_settings
  */
 int get_major_version()
 {
-    return FLUID_SETTINGS_VERSION_MAJOR;
+    return EVENTDISPATCHER_VERSION_MAJOR;
 }
 
 
@@ -66,7 +66,7 @@ int get_major_version()
  */
 int get_release_version()
 {
-    return FLUID_SETTINGS_VERSION_MINOR;
+    return EVENTDISPATCHER_VERSION_MINOR;
 }
 
 
@@ -79,7 +79,7 @@ int get_release_version()
  */
 int get_patch_version()
 {
-    return FLUID_SETTINGS_VERSION_PATCH;
+    return EVENTDISPATCHER_VERSION_PATCH;
 }
 
 
@@ -98,9 +98,9 @@ int get_patch_version()
  */
 char const * get_version_string()
 {
-    return FLUID_SETTINGS_VERSION_STRING;
+    return EVENTDISPATCHER_VERSION_STRING;
 }
 
 
-} // fluid_settings namespace
+} // namespace ed
 // vim: ts=4 sw=4 et

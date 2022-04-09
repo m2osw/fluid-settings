@@ -17,47 +17,39 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ##
-## fluidsettingsd daemon
+## eventdispatcher unittest
 ##
-project(fluidsettingsd)
+project(unittest)
 
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/version.h
-)
+find_package(SnapCatch2)
 
-add_executable(${PROJECT_NAME}
-    main.cpp
-    server.cpp
-    settings.cpp
-    tcp_listener.cpp
-    udp_listener.cpp
-)
+if(SnapCatch2_FOUND)
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${ADVGETOPT_INCLUDE_DIRS}
-        ${LIBADDR_INCLUDE_DIRS}
-        ${LIBEXCEPT_INCLUDE_DIRS}
-        ${SNAPLOGGER_INCLUDE_DIRS}
-)
+    add_executable(${PROJECT_NAME}
+        catch_main.cpp
 
-target_link_libraries(${PROJECT_NAME}
-    fluid-settings
-    ${ADVGETOPT_LIBRARIES}
-    ${LIBADDR_LIBRARIES}
-    ${LIBEXCEPT_LIBRARIES}
-    ${SNAPLOGGER_LIBRARIES}
-)
+        catch_fluid_definitions.cpp
+        catch_version.cpp
+    )
 
-install(
-    TARGETS
-        ${PROJECT_NAME}
+    target_include_directories(${PROJECT_NAME}
+        PUBLIC
+            ${SNAPCATCH2_INCLUDE_DIRS}
+            ${LIBEXCEPT_INCLUDE_DIRS}
+    )
 
-    RUNTIME DESTINATION
-        sbin
-)
+    target_link_libraries(${PROJECT_NAME}
+        fluid-settings
+        ${LIBEXCEPT_LIBRARIES}
+        ${SNAPCATCH2_LIBRARIES}
+    )
 
+    add_test(unittests ${PROJECT_NAME})
 
+else(SnapCatch2_FOUND)
+
+    message("snapcatch2 not found... no test will be built.")
+
+endif(SnapCatch2_FOUND)
 
 # vim: ts=4 sw=4 et

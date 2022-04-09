@@ -17,29 +17,50 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
-/** \file
- * \brief Definitions of the fluid settings library version.
- *
- * This header includes the fluid settings library version and functions you
- * can use to check the current version of the library.
- */
+// catch2 lib
+//
+#include <catch2/snapcatch2.hpp>
+
+// C++ lib
+//
+#include <string>
+#include <cstring>
+#include <cstdlib>
+#include <iostream>
 
 
-#define    FLUID_SETTINGS_VERSION_MAJOR   @EVENTDISPATCHER_VERSION_MAJOR@
-#define    FLUID_SETTINGS_VERSION_MINOR   @EVENTDISPATCHER_VERSION_MINOR@
-#define    FLUID_SETTINGS_VERSION_PATCH   @EVENTDISPATCHER_VERSION_PATCH@
-#define    FLUID_SETTINGS_VERSION_STRING  "@EVENTDISPATCHER_VERSION_MAJOR@.@EVENTDISPATCHER_VERSION_MINOR@.@EVENTDISPATCHER_VERSION_PATCH@"
 
-namespace fluid_settings
+namespace SNAP_CATCH2_NAMESPACE
 {
 
 
-int             get_major_version();
-int             get_release_version();
-int             get_patch_version();
-char const *    get_version_string();
+
+extern char ** g_argv;
 
 
 
-} // fluid_settings namespace
+inline char32_t rand_char(bool full_range = false)
+{
+    char32_t const max((full_range ? 0x0110000 : 0x0010000) - (0xE000 - 0xD800));
+
+    char32_t wc;
+    do
+    {
+        wc = ((rand() << 16) ^ rand()) % max;
+    }
+    while(wc == 0);
+    if(wc >= 0xD800)
+    {
+        // skip the surrogates
+        //
+        wc += 0xE000 - 0xD800;
+    }
+
+    return wc;
+}
+
+
+
+}
+// namespace SNAP_CATCH2_NAMESPACE
 // vim: ts=4 sw=4 et

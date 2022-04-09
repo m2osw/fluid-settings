@@ -1,0 +1,5 @@
+fluid-settings (1.0.0.0~bionic) bionic; urgency=high
+
+  * First version of fluid-settings.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Fri, 08 Apr 2022 18:02:59 -0700

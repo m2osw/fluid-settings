@@ -16,48 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 ##
-## fluidsettingsd daemon
+## Documentation
 ##
-project(fluidsettingsd)
-
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/version.h
+find_package(SnapDoxygen)
+AddDoxygenTarget(fluid-settings
+    ${FLUIDSETTINGS_VERSION_MAJOR}
+    ${FLUIDSETTINGS_VERSION_MINOR}
+    ${FLUIDSETTINGS_VERSION_PATCH}
 )
-
-add_executable(${PROJECT_NAME}
-    main.cpp
-    server.cpp
-    settings.cpp
-    tcp_listener.cpp
-    udp_listener.cpp
-)
-
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${ADVGETOPT_INCLUDE_DIRS}
-        ${LIBADDR_INCLUDE_DIRS}
-        ${LIBEXCEPT_INCLUDE_DIRS}
-        ${SNAPLOGGER_INCLUDE_DIRS}
-)
-
-target_link_libraries(${PROJECT_NAME}
-    fluid-settings
-    ${ADVGETOPT_LIBRARIES}
-    ${LIBADDR_LIBRARIES}
-    ${LIBEXCEPT_LIBRARIES}
-    ${SNAPLOGGER_LIBRARIES}
-)
-
-install(
-    TARGETS
-        ${PROJECT_NAME}
-
-    RUNTIME DESTINATION
-        sbin
-)
-
-
 
 # vim: ts=4 sw=4 et
