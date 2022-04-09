@@ -17,17 +17,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ##
-## list-projects command line tool
+## install-fluid-settings-definitions command line tool
 ##
-project(list-projects)
+project(install-fluid-settings-definitions)
 
 add_executable(${PROJECT_NAME}
-    list_projects.cpp
+    install_fluid_settings_definitions.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${ADVGETOPT_INCLUDE_DIRS}
+        ${BOOST_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}

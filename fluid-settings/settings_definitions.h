@@ -28,6 +28,9 @@
  * `/usr/share/eventdispatcher/fluid-settings/\*.ini`.
  */
 
+// advgetopt
+//
+#include    <advgetopt/advgetopt.h>
 
 
 namespace fluid_settings
@@ -37,7 +40,9 @@ namespace fluid_settings
 class settings_definitions
 {
 public:
-    void                    load_definitions();
+    bool                    load_definitions(std::string const & path = std::string());
+
+    static char const *     get_default_path();
 
 private:
     advgetopt::getopt::pointer_t
