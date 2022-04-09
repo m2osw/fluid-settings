@@ -17,21 +17,28 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /** \file
- * \brief The version of the fluid settings library at compile time.
+ * \brief This implements the reading of fluid setting definitions.
  *
- * This file records the fluid settings library version at
- * compile time.
+ * The fluid settings depend on a list of definitions that declare what is
+ * valid. In other words, only values that are defined in a fluid setting
+ * definition can be defined in the fluid settings (although we can start
+ * listening on a value which is  not yet defined).
  *
- * The `#define`s give you the library version at the time you are compiling.
- * The functions allow you to retrieve the version of a dynamically linked
- * library.
+ * The definitions may appear on any computer on the network. One job of
+ * the fluid settings system is to gather all of these definitions on the
+ * computers running the fluid settings daemon.
+ *
+ * This file implements the loading of those definitions to memory. This
+ * allows us to then share that information with the other services,
+ * including a service such as snapmanager which can display the values
+ * to an administrator for editing.
  */
 
 // self
 //
-#include    "eventdispatcher/fluid-settings/settings_definitions.h"
+#include    "fluid-settings/settings_definitions.h"
 
-#include    "eventdispatcher/fluid-settings/version.h"
+#include    "fluid-settings/version.h"
 
 
 // last include
@@ -48,7 +55,7 @@ namespace
 {
 
 
-constexpr char const * const g_definitions_path = "/var/lib/eventdispatcher/fluid-settings";
+constexpr char const * const g_definitions_path = "/var/lib/fluid-settings";
 constexpr char const * const g_definitions_pattern = "*.ini";
 
 
@@ -108,10 +115,21 @@ bool load_definitions::load_definitions()
 
     snap::glob_to_list<std::list> files;
 
-    files.read_path<>(
+    if(!files.read_path<>(
               std::string(g_definitions_path)
             + '/'
-            + g_definitions_pattern);
+            + g_definitions_pattern))
+    {
+        SNAP_LOG_ERROR
+            << "no fluid-settings definition files found in \""
+            << g_definitions_path
+            << "\" (with pattern \""
+            << g_definitions_pattern
+            << "\")."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
 
     for(auto const & f : files)
     {
@@ -222,5 +240,5 @@ char const * get_version_string()
 }
 
 
-} // fluid_settings namespace
+} // namespace fluid_settings
 // vim: ts=4 sw=4 et

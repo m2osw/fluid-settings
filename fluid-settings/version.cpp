@@ -29,7 +29,7 @@
 
 // self
 //
-#include    "eventdispatcher/fluid-settings/version.h"
+#include    "fluid-settings/version.h"
 
 
 // last include

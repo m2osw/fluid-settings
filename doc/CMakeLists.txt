@@ -22,9 +22,9 @@
 ##
 find_package(SnapDoxygen)
 AddDoxygenTarget(fluid-settings
-    ${FLUIDSETTINGS_VERSION_MAJOR}
-    ${FLUIDSETTINGS_VERSION_MINOR}
-    ${FLUIDSETTINGS_VERSION_PATCH}
+    ${FLUID_SETTINGS_VERSION_MAJOR}
+    ${FLUID_SETTINGS_VERSION_MINOR}
+    ${FLUID_SETTINGS_VERSION_PATCH}
 )
 
 # vim: ts=4 sw=4 et

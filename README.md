@@ -7,13 +7,13 @@ The Fluid Settings project is a three part environment:
   instance in your entire system, but for high availability and data
   redundance, you can have more. They will auto-sync. each other.
 * A library to seemlessly use the settings; you can just write C++ code.
-* A command line tool, so it is possible to test and write scripts and
-  also manually manipulate your settings.
+* A command line, CUI, GUI set of tools, so it is possible to test and write
+  scripts and also manually manipulate your settings.
 
 This is extremely useful as many settings are shared between many services
 on all your computers and by default it makes it really difficult to manage
 those settings if defined in static configuration files on hundred of
-diffenrent computer.
+diffenrent computers.
 
 The Fluid Settings are instead managed by a service and thus centralized.
 Also changing a setting at any point in time allows for any users of that
@@ -124,7 +124,7 @@ Here we show one value on multiple lines for clarity:
 
 This is the actual variable value. It can be set to true, false, a number,
 a string. We do not support arrays or objects as the value. If you want an
-array of values, you have to use a string for that purpsoe and parse that
+array of values, you have to use a string for that purpose and parse that
 string on your own.
 
 #### "timestamp"
@@ -154,25 +154,28 @@ Fluid Settings.
 The definitions use a simple `.ini` file.
 
     [<namespace>::<name>]
-    type=string|integer|date|boolean|address|...
+    validator=<validator-name>
     default=<default value>
-    description=<string>
+    help=<description string>
+    no-arguments
+    multiple
+    required
 
 The name must include at least one `<namespace>::`. It can include several,
 as required.
 
-The type allows us to verify that the values are considered valid. If it
-doesn't match the type, then the value is refused and an error is sent back
-to the sender. The basic types are simple enough. We use the advgetopt
-validator feature and extend that library accordingly.
+The validator allows us to verify that the values are considered valid. If it
+doesn't match the type of data accepted by that validator, then the value is
+refused and an error is sent back to the sender. We use the advgetopt
+validator feature and extend that library as required by our needs.
 
 **Note:** Since we use the advgetopt library, it is possible to change the
 syntax with names such as:
 
     <namespace>::<name>::type=...
 
-This is actually what happens in memory once all the data was read for these
-files.
+This is actually what happens in memory once all the data was read from
+these files.
 
 ### Fluid Settings and Definitions
 
@@ -196,7 +199,8 @@ about it (if the service asks for that special feature).
 
 Once the value is finally known (via a Definitions transfer), the Fluid
 Settings will let the connectors know that it is now available and it can
-be read and written.
+be read and written. If a value already exists, it can be verified for
+validity.
 
 
 # Implementation
@@ -208,6 +212,9 @@ Daemon. So it loads the settings once on startup and then only writes to
 the settings to file whenever a change occurs.
 
 This is very similar to having a service such as Redis or even Cassandra.
+
+The default network connection uses the `snapcommunicator` to make the
+fluid-settings seemlessly available through your entire network.
 
 ### Slow Write
 
@@ -230,25 +237,33 @@ should also verify that they all agree on the current values and the
 values need to be assigned a timestamp so we can chose to keep only the
 very last ones.
 
-The first implementation will be a SET to one Daemon and then that Daemon
+The first implementation will be a `PUT` to one Daemon and then that Daemon
 is responsible to tell the other two about the new value(s).
 
 ### HTTP Extension
 
-The Fluid Service is accessible using HTTP requests with a GET (retrieve
-a value) or a PUT (modify a value). Since values can't be added or deleted,
+The Fluid Service is accessible using HTTP requests with a `GET` (retrieve
+a value) or a `PUT` (modify a value). Since values can't be added or deleted,
 there is no support for POST or DELETE.
 
 In other words, we have a basic REST API.
 
-TODO: this extension requires us to have the eventdispatcher
-`http_server_connection` implemented (at least the HTTP/1.1 version).
+TODO: this extension requires us to have the `edhttp` project implemented
+(at least the HTTP/1.1 version).
+
+**Note:** The `GET` is not available through the standard snapcommunicator
+connection. Instead, we have a `LISTEN` command which a standard REST API
+would not be able to offer.
+
+**Note 2:** The _HTTP Extension_ is useful if we want to implement a
+browser based user interface (a replacement to `snapmanager`).
 
 
 ### Websocket Extension
 
 Later, we could also consider having a Websocket. This is where we connect
 once and have push events instead of having to pull for the latest value(s).
+This better replicates the snapcommunicator `LISTEN` capability.
 
 TBD: HTTP2/3 probably also have a push feature so we may instead want to
 use those and not yet another feature.
@@ -270,16 +285,19 @@ values for those settings. Once you have all the settings you need you can
 proceed with your normal daemon or tool tasks.
 
 
-## Command Line Tool
+## Command Line Tool (CLI)
 
 In order to allow for scripts to tweak the settings and for you to be able
 to manually check the current settings status, we offer a command line tool
 which does the listening and also allows you to change values.
 
-The tool can just be used on the command line or as an interactive tool (`-i`
-option). The interactive mode allows you to run multiple commands without
-having to reconnect and also to listen to the settings and see the changes
-as they happen.
+
+## Interactive Tool (CUI)
+
+This tool can opens a window in your console and allows you to go through
+the list of settings and tweak them as required. If some values get updated
+through other means and are currently being displayed, then the change also
+happens in this window.
 
 
 ## GUI Tool
@@ -303,6 +321,11 @@ The tools folder has a few tools one can use on the command line.
 
   This tool can be used to detect whenever a variable changes.
 
+* List Settings
+
+  This tool lists the settings found on a computer. This is a direct read
+  of fluid definition files found locally.
+
 
 # Dependencies
 
@@ -310,7 +333,7 @@ The project makes use of the follow Snap! C++ contribs:
 
 * advgetopt
 * cppthread (for mutexes)
-* eventdispatcher (we are a sub-project of the eventdispatcher)
+* eventdispatcher
 * libaddr
 * libexcept
 * snapcatch2
@@ -318,3 +341,18 @@ The project makes use of the follow Snap! C++ contribs:
 * snapdev
 * snaplogger
 
+
+# License
+
+The project is covered by the GPL 3.0 license.
+
+
+# Bugs
+
+Submit bug reports and patches on
+[github](https://github.com/m2osw/fluid-settings/issues).
+
+
+_This file is part of the [snapcpp project](https://snapwebsites.org/)._
+
+vim: ts=4 sw=4 et

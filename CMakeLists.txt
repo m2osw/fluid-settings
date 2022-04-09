@@ -34,7 +34,7 @@ find_package(SnapCMakeModules REQUIRED)
 find_package(SnapDev          REQUIRED)
 find_package(SnapLogger       REQUIRED)
 
-SnapGetVersion(FLUIDSETTINGS ${CMAKE_CURRENT_SOURCE_DIR})
+SnapGetVersion(FLUID_SETTINGS ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
