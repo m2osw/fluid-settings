@@ -71,10 +71,6 @@ namespace
 {
 
 
-constexpr char const * const g_definitions_path = "/var/lib/fluid-settings";
-constexpr char const * const g_definitions_pattern = "*.ini";
-
-
 advgetopt::option const g_command_line_options[] =
 {
     advgetopt::define_option(
@@ -110,9 +106,9 @@ advgetopt::option const g_command_line_options[] =
 constexpr advgetopt::options_environment const g_options_environment =
 {
     .f_project_name = "fluid-settings",
-    .f_group_name = "ve",
+    .f_group_name = "fluid-settings",
     .f_options = g_command_line_options,
-    .f_options_files_directory = g_definitions_path,
+    .f_options_files_directory = nullptr,
     .f_environment_variable_name = "INSTALL_FLUID_SETTINGS_DEFINITIONS",
     .f_environment_variable_intro = nullptr,
     .f_section_variables_name = nullptr,

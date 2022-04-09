@@ -19,10 +19,11 @@
 ##
 ## fluid console client
 ##
-project(fluidcli)
+project(fluid-settings-cli)
 
 add_executable(${PROJECT_NAME}
     main.cpp
+    cli.cpp
     client.cpp
 )
 
@@ -31,6 +32,7 @@ target_include_directories(${PROJECT_NAME}
         ${ADVGETOPT_INCLUDE_DIRS}
         ${LIBADDR_INCLUDE_DIRS}
         ${LIBEXCEPT_INCLUDE_DIRS}
+        ${LIBUTF8_INCLUDE_DIRS}
         ${SNAPLOGGER_INCLUDE_DIRS}
 )
 
@@ -39,6 +41,7 @@ target_link_libraries(${PROJECT_NAME}
     ${ADVGETOPT_LIBRARIES}
     ${LIBADDR_LIBRARIES}
     ${LIBEXCEPT_LIBRARIES}
+    ${LIBUTF8_LIBRARIES}
     ${SNAPLOGGER_LIBRARIES}
 )
 

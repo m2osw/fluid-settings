@@ -79,7 +79,7 @@ constexpr char const * const g_definitions_pattern = "*.ini";
 constexpr advgetopt::options_environment const g_options_environment =
 {
     .f_project_name = "fluid-settings",
-    .f_group_name = "ve",
+    .f_group_name = "fluid-settings",
     .f_options = nullptr,
     .f_options_files_directory = g_definitions_path,
     .f_environment_variable_name = nullptr,

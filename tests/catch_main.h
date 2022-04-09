@@ -17,16 +17,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
-// catch2 lib
+// catch2
 //
-#include <catch2/snapcatch2.hpp>
+#include    <catch2/snapcatch2.hpp>
 
-// C++ lib
+// C++
 //
-#include <string>
-#include <cstring>
-#include <cstdlib>
-#include <iostream>
+#include    <string>
+#include    <cstring>
+#include    <cstdlib>
+#include    <iostream>
 
 
 
@@ -36,28 +36,6 @@ namespace SNAP_CATCH2_NAMESPACE
 
 
 extern char ** g_argv;
-
-
-
-inline char32_t rand_char(bool full_range = false)
-{
-    char32_t const max((full_range ? 0x0110000 : 0x0010000) - (0xE000 - 0xD800));
-
-    char32_t wc;
-    do
-    {
-        wc = ((rand() << 16) ^ rand()) % max;
-    }
-    while(wc == 0);
-    if(wc >= 0xD800)
-    {
-        // skip the surrogates
-        //
-        wc += 0xE000 - 0xD800;
-    }
-
-    return wc;
-}
 
 
 

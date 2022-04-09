@@ -24,22 +24,22 @@
 #include    "catch_main.h"
 
 
-// eventdispatcher lib
+// fluid-settings
 //
-#include    <eventdispatcher/version.h>
+#include    <fluid-settings/version.h>
 
 
-// libexcept lib
+// libexcept
 //
 #include    <libexcept/exception.h>
 
 
-// snaplogger lib
+// snaplogger
 //
 #include    <snaplogger/logger.h>
 
 
-// C++ lib
+// C++
 //
 #include    <sstream>
 
@@ -65,8 +65,8 @@ int main(int argc, char * argv[])
     l->set_severity(snaplogger::severity_t::SEVERITY_ALL);
 
     return SNAP_CATCH2_NAMESPACE::snap_catch2_main(
-              "eventdispatcher"
-            , EVENTDISPATCHER_VERSION_STRING
+              "fluid-settings"
+            , FLUID_SETTINGS_VERSION_STRING
             , argc
             , argv
             , []() { libexcept::set_collect_stack(libexcept::collect_stack_t::COLLECT_STACK_NO); }

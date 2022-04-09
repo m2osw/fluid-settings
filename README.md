@@ -291,6 +291,19 @@ In order to allow for scripts to tweak the settings and for you to be able
 to manually check the current settings status, we offer a command line tool
 which does the listening and also allows you to change values.
 
+The CLI tool supports these command line options:
+
+* `--delete | -D <setting name>` -- delete the user defined value of
+  the named setting; this restore the value's default.
+* `--set | -s <setting name> <new value>` -- set the user defined value of
+  the named setting to the new value.
+* `--get | -g <setting name>` -- get the user defined value of the named
+  setting and print that value in the console.
+* `--list-services` -- print the list of services that have fluid settings;
+  this is a list of the first "namespace" section of a fluid setting option.
+* `--list-options <service>` -- print the list of options a specific service
+  supports.
+
 
 ## Interactive Tool (CUI)
 
