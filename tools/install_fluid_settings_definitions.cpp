@@ -40,6 +40,11 @@
 #include    <advgetopt/exception.h>
 
 
+// snapdev
+//
+#include    <snapdev/pathinfo.h>
+
+
 // boost
 //
 #include    <boost/preprocessor/stringize.hpp>
@@ -53,6 +58,7 @@
 // C
 //
 #include    <unistd.h>
+#include    <limits.h>
 
 
 // last include
@@ -71,6 +77,14 @@ constexpr char const * const g_definitions_pattern = "*.ini";
 
 advgetopt::option const g_command_line_options[] =
 {
+    advgetopt::define_option(
+          advgetopt::Name("symlink")
+        , advgetopt::ShortName('s')
+        , advgetopt::Flags(advgetopt::standalone_all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+              >())
+        , advgetopt::Help("create a symbolic link instead of copying the file.")
+    ),
     advgetopt::define_option(
           advgetopt::Name("verbose")
         , advgetopt::ShortName('v')
@@ -132,7 +146,8 @@ int main(int argc, char *argv[])
     try
     {
         advgetopt::getopt opts(g_options_environment, argc, argv);
-        bool verbose(opts.is_defined("verbose"));
+        bool const verbose(opts.is_defined("verbose"));
+        bool const symlink(opts.is_defined("symlink"));
 
         std::string path(fluid_settings::settings_definitions::get_default_path());
         if(path.empty())
@@ -202,24 +217,74 @@ int main(int argc, char *argv[])
                     << "\".\n";
             }
 
-            // TODO: consider using `install` instead of `cp`
+            // TODO: consider using `install` instead of `cp`/`ln`
             //       and offer the backup capability here
             //
-            std::string cmd("cp \"");
-            cmd += source;
-            cmd += "\" \"";
-            cmd += path;
-            cmd += "\"";
-            if(system(cmd.c_str()) != 0)
+            if(symlink)
             {
-                std::cerr
-                    << opts.get_program_name()
-                    << ": could not copy file \""
-                    << source
-                    << "\" to \""
-                    << path
-                    << "\".\n";
-                exit_code = 1;
+                std::string destination(path);
+                destination += snapdev::pathinfo::basename(source);
+                char real[PATH_MAX + 1];
+                if(realpath(source.c_str(), real) == nullptr)
+                {
+                    std::cerr
+                        << opts.get_program_name()
+                        << ": could not determine real path of source \""
+                        << source
+                        << "\".\n";
+                    continue;
+                }
+                real[PATH_MAX] = '\0';
+                std::string real_source(real);
+                std::string cmd("ln -s \"");
+                cmd += real_source;
+                cmd += "\" \"";
+                cmd += destination;
+                cmd += "\"";
+                if(unlink(destination.c_str()))
+                {
+                    if(errno != ENOENT)
+                    {
+                        std::cerr
+                            << opts.get_program_name()
+                            << ": could not delete existing destination file \""
+                            << destination
+                            << "\" before creating symbolic link to \""
+                            << source
+                            << "\".\n";
+                        continue;
+                    }
+                }
+                if(system(cmd.c_str()) != 0)
+                {
+                    std::cerr
+                        << opts.get_program_name()
+                        << ": could not link file \""
+                        << source
+                        << "\" to \""
+                        << path
+                        << "\".\n";
+                    exit_code = 1;
+                }
+            }
+            else
+            {
+                std::string cmd("cp \"");
+                cmd += source;
+                cmd += "\" \"";
+                cmd += path;
+                cmd += "\"";
+                if(system(cmd.c_str()) != 0)
+                {
+                    std::cerr
+                        << opts.get_program_name()
+                        << ": could not copy file \""
+                        << source
+                        << "\" to \""
+                        << path
+                        << "\".\n";
+                    exit_code = 1;
+                }
             }
         }
 

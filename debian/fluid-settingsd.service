@@ -2,15 +2,15 @@
 # https://www.freedesktop.org/software/systemd/man/systemd.service.html
 
 [Unit]
-Description=Snap! Logger daemon
-Documentation=https://snapwebsites.org/project/snaplogger file:/usr/share/doc/snaplogger-doc/html/
+Description=Fluid Settings Daemon
+Documentation=https://snapwebsites.org/project/fluid-settings file:/usr/share/doc/fluid-settings-doc/html/
 
 [Service]
 Type=simple
 WorkingDirectory=~
 ProtectHome=true
 NoNewPrivileges=true
-ExecStart=/usr/sbin/snaploggerd
+ExecStart=/usr/sbin/fluidsetttingsd
 
 # TODO: we can't have an IP:port here, we need a way to give ed-signal
 #       the name of a config file and variable to read that info
@@ -19,8 +19,8 @@ ExecStop=/usr/bin/ed-signal --message STOP --server 127.0.0.1:4050
 
 Restart=on-failure
 RestartSec=10
-User=snaplogger
-Group=snaplogger
+User=fluid-settings
+Group=fluid-settings
 LimitNPROC=1000
 # For developers and administrators to get console output
 #StandardOutput=tty

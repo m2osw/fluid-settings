@@ -1,4 +1,2 @@
-usr/lib/libeventdispatcher.so.*
-usr/bin/ed-signal
-conf/ed-signal.conf                     etc/eventdispatcher/
-conf/README.md                          etc/eventdispatcher/eventdispatcher.d/
+usr/lib/libfluid-settings.so.*
+usr/bin/install-fluid-settings-definitions
