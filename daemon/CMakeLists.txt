@@ -29,9 +29,11 @@ configure_file(
 add_executable(${PROJECT_NAME}
     main.cpp
     server.cpp
-    settings.cpp
-    tcp_listener.cpp
-    udp_listener.cpp
+    #settings.cpp
+    messenger.cpp
+    #tcp_listener.cpp
+    #udp_listener.cpp
+    version.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

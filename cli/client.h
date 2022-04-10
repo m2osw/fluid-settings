@@ -65,6 +65,7 @@ public:
     virtual void        process_timeout() override;
 
     void                msg_deleted(ed::message & msg);
+    void                msg_failed(ed::message & msg);
     void                msg_options(ed::message & msg);
     void                msg_updated(ed::message & msg);
     void                msg_value(ed::message & msg);

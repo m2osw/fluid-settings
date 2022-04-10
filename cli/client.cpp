@@ -83,23 +83,27 @@ namespace fluid_settings_cli
 ed::dispatcher<client>::dispatcher_match::vector_t const g_dispatcher_messages =
 {
     { // reply to DELETE
-          "FLUID_SETTING_DELETED"
+          "FLUID_SETTINGS_DELETED"
         , &client::msg_deleted
     },
+    { // reply on failure
+          "FLUID_SETTINGS_FAILED"
+        , &client::msg_failed
+    },
     { // reply to LIST
-          "FLUID_SETTING_OPTIONS"
+          "FLUID_SETTINGS_OPTIONS"
         , &client::msg_options
     },
     { // reply to PUT
-          "FLUID_SETTING_UPDATED"
+          "FLUID_SETTINGS_UPDATED"
         , &client::msg_updated
     },
     { // reply to GET
-          "FLUID_SETTING_VALUE"
+          "FLUID_SETTINGS_VALUE"
         , &client::msg_value
     },
     { // reply to LISTEN
-          "FLUID_SETTING_VALUE_UPDATED"
+          "FLUID_SETTINGS_VALUE_UPDATED"
         , &client::msg_value_updated
     },
 };
@@ -133,6 +137,12 @@ void client::msg_deleted(ed::message & msg)
     snapdev::NOT_USED(msg);
 
     f_parent->deleted();
+}
+
+
+void client::msg_failed(ed::message & msg)
+{
+    f_parent->failed(msg);
 }
 
 

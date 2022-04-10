@@ -18,14 +18,9 @@
 #pragma once
 
 /** \file
- * \brief Definitions of the loading of the fluid settings definitions.
+ * \brief Management of the settings on the Server.
  *
- * Settings that one can set or get in the fluid settings must all be
- * given a definition. This is very similar to an option in the advgetopt
- * library.
- *
- * The definitions are read from disk. They must be saved under
- * `/usr/share/eventdispatcher/fluid-settings/*.ini`.
+ * .
  */
 
 

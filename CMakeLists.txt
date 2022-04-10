@@ -45,7 +45,7 @@ include_directories(
 add_subdirectory(fluid-settings)
 add_subdirectory(daemon)
 add_subdirectory(cli)
-add_subdirectory(gui)
+#add_subdirectory(gui)
 add_subdirectory(tools)
 add_subdirectory(doc)
 add_subdirectory(cmake)

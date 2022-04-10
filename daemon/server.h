@@ -18,32 +18,105 @@
 #pragma once
 
 /** \file
- * \brief Definitions of the loading of the fluid settings definitions.
+ * \brief Definitions of the server.
  *
- * Settings that one can set or get in the fluid settings must all be
- * given a definition. This is very similar to an option in the advgetopt
- * library.
- *
- * The definitions are read from disk. They must be saved under
- * `/usr/share/eventdispatcher/fluid-settings/*.ini`.
+ * The server is created and starts the messenger and runs the communicator
+ * run loop.
  */
 
+// advgetopt
+//
+#include    "advgetopt/advgetopt.h"
 
 
-namespace fluid_settings
+// snapdev
+//
+#include    "snapdev/timespec_operations.h"
+
+
+// eventdispatcher
+//
+#include    <eventdispatcher/communicator.h>
+#include    <eventdispatcher/tcp_client_permanent_message_connection.h>
+
+
+
+
+namespace fluid_settings_daemon
 {
 
 
-class settings_definitions
+class server
 {
 public:
-    void                    load_definitions();
+    typedef std::shared_ptr<server> pointer_t;
+
+                            server(int argc, char * argv[]);
+
+    int                     run();
+
+    bool                    listen(std::string const & server_name, std::string const & service_name, std::string const & names);
+    bool                    forget(std::string const & server_name, std::string const & service_name, std::string const & names);
+    std::string             list_of_options();
+    bool                    get_value(std::string const & name, std::string & value);
+    bool                    set_value(
+                                      std::string const & name
+                                    , std::string const & value
+                                    , int priority
+                                    , snapdev::timespec_ex const & timestamp);
+    void                    reset_setting(std::string const & name, int priority);
 
 private:
-    advgetopt::getopt::pointer_t
-                            f_opts = advgetopt::getopt::pointer_t();
+    advgetopt::getopt       f_opts;
+    ed::communicator::pointer_t
+                            f_communicator = ed::communicator::pointer_t();
+    addr::addr              f_address = addr::addr();
+    ed::tcp_client_permanent_message_connection::pointer_t
+                            f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
+
+    struct server_service
+    {
+        typedef std::set<server_service>    set_t;
+
+        std::string             f_server = std::string();
+        std::string             f_service = std::string();
+
+        bool operator < (server_service const & rhs) const
+        {
+            if(f_server < rhs.f_server)
+            {
+                return true;
+            }
+            if(f_server > rhs.f_server)
+            {
+                return false;
+            }
+
+            return f_service < rhs.f_service;
+        }
+    };
+    typedef std::map<std::string, server_service::set_t>    listener_t;
+
+    listener_t              f_listeners = listener_t();
+
+    struct value_priority
+    {
+        typedef std::set<value_priority>                        set_t;
+        typedef std::map<std::string, value_priority::set_t>    map_t;
+
+        std::string             f_value = std::string();
+        int                     f_priority = 50;
+        snapdev::timespec_ex    f_timestamp = snapdev::timespec_ex();
+
+        bool operator < (value_priority const & rhs) const
+        {
+            return f_priority < rhs.f_priority;
+        }
+    };
+
+    value_priority::map_t   f_values = value_priority::map_t();
 };
 
 
-} // fluid_settings namespace
+} // namespace fluid_settings_daemon
 // vim: ts=4 sw=4 et

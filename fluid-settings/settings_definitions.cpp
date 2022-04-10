@@ -154,11 +154,16 @@ bool settings_definitions::load_definitions(std::string const & path)
         return false;
     }
 
+    bool const ignore_duplicates(!f_opts->get_options().empty());
     for(auto const & f : files)
     {
         try
         {
-        f_opts->parse_options_from_file(f, 2, std::numeric_limits<int>::max());
+            f_opts->parse_options_from_file(
+                      f
+                    , 2
+                    , std::numeric_limits<int>::max()
+                    , ignore_duplicates);
         }
         catch(advgetopt::getopt_logic_error const & e)
         {

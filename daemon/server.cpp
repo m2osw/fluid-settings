@@ -29,9 +29,40 @@
 
 // self
 //
-#include    "eventdispatcher/fluid-settings/settings_definitions.h"
+#include    "server.h"
 
-#include    "eventdispatcher/fluid-settings/version.h"
+#include    "messenger.h"
+
+
+// fluid-settings
+//
+#include    <fluid-settings/version.h>
+
+
+// advgetopt
+//
+#include    <advgetopt/exception.h>
+
+
+// libaddr
+//
+#include    <libaddr/addr_parser.h>
+
+
+// snaplogger
+//
+#include    <snaplogger/options.h>
+
+
+// snapdev
+//
+#include    <snapdev/join_strings.h>
+#include    <snapdev/map_keyset.h>
+
+
+// boost
+//
+#include    <boost/preprocessor/stringize.hpp>
 
 
 // last include
@@ -40,7 +71,7 @@
 
 
 
-namespace fluid_settings
+namespace fluid_settings_daemon
 {
 
 
@@ -48,31 +79,68 @@ namespace
 {
 
 
-constexpr char const * const g_definitions_path = "/var/lib/eventdispatcher/fluid-settings";
-constexpr char const * const g_definitions_pattern = "*.ini";
+advgetopt::option const g_options[] =
+{
+    advgetopt::define_option(
+          advgetopt::Name("snapcommunicator")
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
+        , advgetopt::DefaultValue("127.0.0.1:4050")
+        , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("verbose")
+        , advgetopt::Flags(advgetopt::standalone_all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
+        , advgetopt::Help("show what is happening inside the fluid-settings daemon.")
+    ),
+    advgetopt::end_options()
+};
+
+
+advgetopt::group_description const g_group_descriptions[] =
+{
+    advgetopt::define_group(
+          advgetopt::GroupNumber(advgetopt::GETOPT_FLAG_GROUP_COMMANDS)
+        , advgetopt::GroupName("command")
+        , advgetopt::GroupDescription("Commands:")
+    ),
+    advgetopt::define_group(
+          advgetopt::GroupNumber(advgetopt::GETOPT_FLAG_GROUP_OPTIONS)
+        , advgetopt::GroupName("option")
+        , advgetopt::GroupDescription("Options:")
+    ),
+    advgetopt::end_groups()
+};
+
 
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-constexpr options_environment const g_options_environment =
+constexpr advgetopt::options_environment const g_options_environment =
 {
-    .f_project_name = "fluid-settings",
-    .f_group_name = "ve",
-    .f_options = nullptr,
-    .f_options_files_directory = g_definitions_path,
-    .f_environment_variable_name = nullptr,
+    .f_project_name = "fluid-settings-daemon",
+    .f_group_name = "fluid-settings",
+    .f_options = g_options,
+    .f_options_files_directory = nullptr,
+    .f_environment_variable_name = "FLUID_SETTINGS_DAEMON",
+    .f_environment_variable_intro = nullptr,
+    .f_section_variables_name = nullptr,
     .f_configuration_files = nullptr,
     .f_configuration_filename = nullptr,
     .f_configuration_directories = nullptr,
-    .f_environment_flags = 0,
-    .f_help_header = nullptr,
-    .f_help_footer = nullptr,
+    .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
+    .f_help_header = "Usage: %p [-<opt>] <settings-definitions filename>\n"
+                     "where -<opt> is one or more of:",
+    .f_help_footer = "%c",
     .f_version = FLUID_SETTINGS_VERSION_STRING,
-    .f_license = nullptr,
-    .f_copyright = nullptr,
+    .f_license = "GNU GPL v3",
+    .f_copyright = "Copyright (c) 2022-"
+                   BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
+                   " by Made to Order Software Corporation -- All Rights Reserved",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
-    .f_groups = nullptr,
+    .f_groups = g_group_descriptions,
 };
 #pragma GCC diagnostic pop
 
@@ -82,144 +150,245 @@ constexpr options_environment const g_options_environment =
 
 
 
-/** \brief Load and update the settings definitons.
- *
- * This object is used to load and hold the settings definitions. These
- * definitions are found under `/usr/share/eventdispathcer/fluid-settings/...`.
- *
- * The settings are defined in configuration files which give the name of
- * each field that can be found in the fluid-settings. These definition
- * include a type, a default value, and a few other features.
- */
-settings_definitions::settings_definitions()
+server::server(int argc, char * argv[])
+    : f_opts(g_options_environment)
+    , f_communicator(ed::communicator::instance())
 {
+    snaplogger::add_logger_options(f_opts);
+    f_opts.finish_parsing(argc, argv);
+    if(!snaplogger::process_logger_options(f_opts, "/etc/snapcommunicator/logger"))
+    {
+        // exit on any error
+        throw advgetopt::getopt_exit("logger options generated an error.", 1);
+    }
+
+    f_address = addr::string_to_addr(
+                          f_opts.get_string("snapcommunicator")
+                        , "127.0.0.1"
+                        , 4050
+                        , "tcp");
 }
 
 
-/** \brief Load the list of files with option definitions.
- *
- * This file includes option definitions.
- *
- * \return true if some configuration files were found, false otherwise.
- */
-bool load_definitions::load_definitions()
+int server::run()
 {
-    f_opts = std::make_shared<getopt>(g_options_environment);
+    f_messenger = std::make_shared<messenger>(this, f_address);
+    f_communicator->add_connection(f_messenger);
 
-    snap::glob_to_list<std::list> files;
+    f_communicator->run();
 
-    files.read_path<>(
-              std::string(g_definitions_path)
-            + '/'
-            + g_definitions_pattern);
+    return 0;
+}
 
-    for(auto const & f : files)
+
+bool server::listen(
+      std::string const & server_name
+    , std::string const & service_name
+    , std::string const & names)
+{
+    advgetopt::string_list_t split_names;
+    advgetopt::split_string(names, split_names, { "," });
+    if(split_names.empty())
     {
-        f_opts->parse_options_from_file(f, 2, std::numeric_limits<int>::max());
+        SNAP_LOG_INFO
+            << "received a listen() message with an empty list of names."
+            << SNAP_LOG_SEND;
+        return false;
+    }
 
-//        advgetopt::conf_file_setup setup(f);
-//        advgetopt::conf_file::pointer_t const config(advgetopt::conf_file::get_conf_file(setup);
-//        advgetopt::conf_file::sections_t const sections(config.get_sections());
-//
-//        for(auto const & s : sections)
-//        {
-//            std::list<std::string> section_names;
-//            snap::tokenize_string(
-//                  section_names
-//                , s
-//                , "::");
-//            if(section_names.size() < 2)
-//            {
-//                SNAP_LOG_RECOVERABLE_ERROR
-//                    << "the name of a settings definition must include a namespace; \""
-//                    << s
-//                    << "\" is not considered valid."
-//                    << SNAP_LOG_SEND;
-//                continue;
-//            }
-//
-//            // default
-//            //
-//            std::string default_str;
-//            char * default_value(nullptr);
-//            std::string const default_name(s + "::default");
-//            if(config.has_parameter(default_name))
-//            {
-//                default_str = config.get_parameter(default_name);
-//                default_value = default_str.c_str();
-//            }
-//
-//            // description
-//            //
-//            std::string description_str;
-//            char * description(nullptr);
-//            std::string const description_name(s + "::description");
-//            if(config.has_parameter(description_name))
-//            {
-//                description_str = config.get_parameter(description_name);
-//                description = description_str.c_str();
-//            }
-//
-//            // type
-//            //
-//            std::string type_str;
-//            char * type(nullptr);
-//            std::string const type_name(s + "::type");
-//            if(config.has_parameter(type_name))
-//            {
-//                type_str = config.get_parameter(type_name);
-//                type = type_str.c_str();
-//            }
-//
-//            advgetopt::option dynamic_option[2] = {
-//                define_option(
-//                      advgetopt::Name(s)
-//                    , advgetopt::Flags<advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION
-//                                     , advgetopt::GETOPT_FLAG_REQUIRED
-//                                     , advgetopt::GETOPT_FLAG_GROUP_OPTIONS>()
-//                    , advgetopt::DefaultValue(default_value)
-//                    , advgetopt::Help(description)
-//                    , advgetopt::Validator(type)
-//                ),
-//                end_options()
-//            };
-//
-//            f_opts.parse_options_info(dynamic_option, false);
+    server_service ss;
+    ss.f_server = server_name;
+    ss.f_service = service_name;
+
+    bool result(true);
+    for(auto const & n : split_names)
+    {
+        if(f_listeners[n].insert(ss).second)
+        {
+            result = false;
         }
+    }
+
+    return result;
+}
+
+
+bool server::forget(
+      std::string const & server_name
+    , std::string const & service_name
+    , std::string const & names)
+{
+    advgetopt::string_list_t split_names;
+    advgetopt::split_string(names, split_names, { "," });
+    if(split_names.empty())
+    {
+        SNAP_LOG_INFO
+            << "received a listen() message with an empty list of names."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+
+    server_service ss;
+    ss.f_server = server_name;
+    ss.f_service = service_name;
+
+    bool result(true);
+    for(auto const & n : split_names)
+    {
+        auto it(f_listeners.find(n));
+        if(it != f_listeners.end())
+        {
+            auto e(it->second.find(ss));
+            if(e != it->second.end())
+            {
+                it->second.erase(e);
+                if(it->second.empty())
+                {
+                    f_listeners.erase(it);
+                    result = false;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+
+std::string server::list_of_options()
+{
+    std::set<std::string> options;
+    snapdev::map_keyset(options, f_opts.get_options());
+    return snapdev::join_strings(options, ",");
+}
+
+
+bool server::get_value(std::string const & name, std::string & value)
+{
+    advgetopt::option_info::pointer_t o(f_opts.get_option(name));
+    if(o == nullptr)
+    {
+        return false;
+    }
+
+    if(!o->is_defined())
+    {
+        return false;
+    }
+
+    // the value is defined so we can retrieve it, "unfortunately" the
+    // advgetopt option_info object does not track priorities; there we
+    // instead save the latest which happens to be the values from the
+    // configuration file with the highest priority...
+    //
+    // in fluid-settings we have to have our own table because we want
+    // to save all the values with all of their priorities so here we
+    // do the necessary to retrieve the value with the highest priority
+    //
+    auto it(f_values.find(name));
+    if(it == f_values.end())
+    {
+        // weird, if o->is_defined() is true then we should have found this!?
+        //
+        return false;
+    }
+    if(it->second.empty())
+    {
+        return false;
+    }
+
+    value = it->second.rbegin()->f_value;
+
+    return true;
+}
+
+
+bool server::set_value(
+      std::string const & name
+    , std::string const & value
+    , int priority
+    , snapdev::timespec_ex const & timestamp)
+{
+    advgetopt::option_info::pointer_t o(f_opts.get_option(name));
+    if(o == nullptr)
+    {
+        return false;
+    }
+
+    o->set_value(0, value, advgetopt::option_source_t::SOURCE_DYNAMIC);
+    if(!o->is_defined())
+    {
+        return false;
+    }
+
+    value_priority v;
+    v.f_value = value;
+    v.f_priority = priority;
+    v.f_timestamp = timestamp;
+
+    auto it(f_values.find(name));
+    if(it == f_values.end())
+    {
+        // no such value yet, just save that value_priority as is
+        //
+        f_values[name].insert(v);
+    }
+    else
+    {
+        auto vp(it->second.find(v));
+        if(vp == it->second.end())
+        {
+            // not there yet, just insert
+            //
+            it->second.insert(v);
+        }
+        else if(timestamp > vp->f_timestamp)
+        {
+            // it was already there, but message value is more recent
+            // than stored value so keep it
+            //
+            it->second.insert(v);
+        }
+    }
+
+    return true;
+}
+
+
+void server::reset_setting(std::string const & name, int priority)
+{
+    advgetopt::option_info::pointer_t o(f_opts.get_option(name));
+    if(o == nullptr)
+    {
+        return;
+    }
+
+    o->reset();
+
+    auto it(f_values.find(name));
+    if(it == f_values.end())
+    {
+        return;
+    }
+
+    value_priority v;
+    v.f_priority = priority;
+    auto vp(it->second.find(v));
+    if(vp == it->second.end())
+    {
+        return;
+    }
+
+    it->second.erase(vp);
+
+    if(it->second.empty())
+    {
+        f_values.erase(it);
     }
 }
 
 
-/** \brief Get the patch version of the library.
- *
- * This function returns the patch version of the running library
- * (the one you are linked against at runtime).
- *
- * \return The patch version.
- */
-int get_patch_version()
-{
-    return FLUID_SETTINGS_VERSION_PATCH;
-}
 
-
-/** \brief Get the full version of the library as a string.
- *
- * This function returns the major, minor, and patch versions of the
- * running library (the one you are linked against at runtime) in the
- * form of a string.
- *
- * The build version is not made available. In most cases we change
- * the build version only to run a new build, so not code will have
- * changed (some documentation and non-code files may changed between
- * build versions; but the code will work exactly the same way.)
- *
- * \return The library version.
- */
-char const * get_version_string()
-{
-    return FLUID_SETTINGS_VERSION_STRING;
-}
 
 
 } // fluid_settings namespace

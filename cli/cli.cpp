@@ -104,8 +104,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Help("get a value.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("hostname")
-        , advgetopt::ShortName('H')
+          advgetopt::Name("snapcommunicator")
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_COMMANDS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
@@ -160,6 +159,7 @@ advgetopt::option const g_options[] =
     ),
     advgetopt::end_options()
 };
+
 
 advgetopt::group_description const g_group_descriptions[] =
 {
@@ -262,8 +262,11 @@ cli::cli(int argc, char *argv[])
         throw advgetopt::getopt_exit("incorrect number of commands.", 1);
     }
 
-    std::string const hostname(f_opts.get_string("hostname"));
-    f_address = addr::string_to_addr(hostname, "127.0.0.1", 4040, "tcp");
+    f_address = addr::string_to_addr(
+                          f_opts.get_string("snapcommunicator")
+                        , "127.0.0.1"
+                        , 4050
+                        , "tcp");
 }
 
 
@@ -276,13 +279,13 @@ int cli::run()
     ed::message msg;
     if(f_opts.is_defined("delete"))
     {
-        msg.set_command("DELETE");
+        msg.set_command("FLUID_SETTINGS_DELETE");
         msg.add_parameter("name", f_opts.get_string("delete"));
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("get"))
     {
-        msg.set_command("GET");
+        msg.set_command("FLUID_SETTINGS_GET");
         msg.add_parameter("name", f_opts.get_string("get"));
         f_client->send_message(msg);
     }
@@ -290,19 +293,19 @@ int cli::run()
          || f_opts.is_defined("list-options")
          || f_opts.is_defined("list-services"))
     {
-        msg.set_command("LIST");
+        msg.set_command("FLUID_SETTINGS_LIST");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("set"))
     {
-        msg.set_command("PUT");
+        msg.set_command("FLUID_SETTINGS_PUT");
         msg.add_parameter("name", f_opts.get_string("set"));
         msg.add_parameter("value", f_opts.get_string("set", 1));
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("watch"))
     {
-        msg.set_command("LISTEN");
+        msg.set_command("FLUID_SETTINGS_LISTEN");
         msg.add_parameter("names", f_opts.get_string("watch"));
         f_client->send_message(msg);
     }
@@ -316,6 +319,27 @@ int cli::run()
 void cli::deleted()
 {
     f_success = true;
+    f_communicator->remove_connection(f_client);
+}
+
+
+void cli::failed(ed::message & msg)
+{
+    if(msg.has_parameter("error_command"))
+    {
+        std::cerr
+            << "command that generated the error: "
+            << msg.get_parameter("error_command")
+            << '\n';
+    }
+    if(msg.has_parameter("error"))
+    {
+        std::cerr
+            << "error message: "
+            << msg.get_parameter("error")
+            << '\n';
+    }
+
     f_communicator->remove_connection(f_client);
 }
 

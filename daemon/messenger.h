@@ -36,50 +36,55 @@
  */
 
 
-// advgetopt
+// self
 //
-#include    "advgetopt/advgetopt.h"
+#include    "server.h"
+
+
+// libaddr
+//
+#include    <libaddr/addr.h>
 
 
 // eventdispatcher
 //
-#include    <eventdispatcher/communicator.h>
-#include    <eventdispatcher/tcp_client_permanent_message_connection.h>
+#include    <eventdispatcher/dispatcher.h>
 
 
 
-namespace fluid_settings_cli
+namespace fluid_settings_daemon
 {
 
 
-class cli
+
+class server;
+
+
+class messenger
+    : public ed::tcp_client_permanent_message_connection
 {
 public:
-    typedef std::shared_ptr<cli>    pointer_t;
+    typedef std::shared_ptr<messenger>      pointer_t;
 
-                        cli(int argc, char * argv[]);
+                        messenger(server * s, addr::addr const & address);
+                        messenger(messenger const &) = delete;
+    virtual             ~messenger() override;
+    messenger &         operator = (messenger const &) = delete;
 
-    int                 run();
-    void                deleted();
-    void                list(ed::message & msg);
-    void                updated();
-    void                value(ed::message & msg);
-    void                value_updated(ed::message & msg);
-    void                timeout();
-    void                failed(ed::message & msg);
+    void                msg_delete(ed::message & msg);
+    void                msg_forget(ed::message & msg);
+    void                msg_get(ed::message & msg);
+    void                msg_list(ed::message & msg);
+    void                msg_listen(ed::message & msg);
+    void                msg_put(ed::message & msg);
 
 private:
-    bool                print_value(std::string const & value);
-
-    advgetopt::getopt   f_opts;
-    ed::communicator::pointer_t
-                        f_communicator = ed::communicator::pointer_t();
-    addr::addr          f_address = addr::addr();
-    ed::tcp_client_permanent_message_connection::pointer_t
-                        f_client = ed::tcp_client_permanent_message_connection::pointer_t();
-    bool                f_success = false;
+    server *            f_server = nullptr;
+    ed::dispatcher<messenger>::pointer_t
+                        f_dispatcher = ed::dispatcher<messenger>::pointer_t();
 };
 
 
-} // namespace fluid_settings_cli
+
+} // namespace fluid_settings_daemon
 // vim: ts=4 sw=4 et
