@@ -27,7 +27,6 @@ configure_file(
 )
 
 add_library(${PROJECT_NAME} SHARED
-    #fluid_settings.cpp
     settings.cpp
     value.cpp
     version.cpp
@@ -73,7 +72,9 @@ install(
 
 install(
     FILES
-        fluid_definitions.h
+        exception.h
+        settings.h
+        value.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.h
 
     DESTINATION

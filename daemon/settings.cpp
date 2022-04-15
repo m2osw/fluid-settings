@@ -29,9 +29,9 @@
 
 // self
 //
-#include    "eventdispatcher/fluid-settings/settings_definitions.h"
+#include    "fluid-settings/settings.h"
 
-#include    "eventdispatcher/fluid-settings/version.h"
+#include    "fluid-settings/version.h"
 
 
 // last include
