@@ -28,25 +28,47 @@
  * `/usr/share/eventdispatcher/fluid-settings/\*.ini`.
  */
 
+// self
+//
+#include    "value.h"
+
+
 // advgetopt
 //
 #include    <advgetopt/advgetopt.h>
+
 
 
 namespace fluid_settings
 {
 
 
-class settings_definitions
+class settings
 {
 public:
-    bool                    load_definitions(std::string const & path = std::string());
+    bool                    load_definitions(
+                                  std::string const & path = std::string());
+    std::string             list_of_options();
+    bool                    get_value(
+                                  std::string const & name
+                                , std::string & value);
+    bool                    set_value(
+                                  std::string const & name
+                                , std::string const & value
+                                , int priority
+                                , snapdev::timespec_ex const & timestamp);
+    void                    reset_setting(
+                                  std::string const & name
+                                , int priority);
 
     static char const *     get_default_path();
 
 private:
+    bool                    load_file(std::string const & path);
+
     advgetopt::getopt::pointer_t
                             f_opts = advgetopt::getopt::pointer_t();
+    value::map_t            f_values = value::map_t();
 };
 
 

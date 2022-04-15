@@ -23,7 +23,7 @@
 
 // fluid-settings
 //
-#include    <fluid-settings/settings_definitions.h>
+#include    <fluid-settings/settings.h>
 
 
 // C

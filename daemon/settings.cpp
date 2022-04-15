@@ -91,7 +91,7 @@ constexpr options_environment const g_options_environment =
  * each field that can be found in the fluid-settings. These definition
  * include a type, a default value, and a few other features.
  */
-settings_definitions::settings_definitions()
+settings::settings()
 {
 }
 
@@ -102,7 +102,7 @@ settings_definitions::settings_definitions()
  *
  * \return true if some configuration files were found, false otherwise.
  */
-bool load_definitions::load_definitions()
+bool settings::load_definitions()
 {
     f_opts = std::make_shared<getopt>(g_options_environment);
 
@@ -187,38 +187,6 @@ bool load_definitions::load_definitions()
 //            f_opts.parse_options_info(dynamic_option, false);
         }
     }
-}
-
-
-/** \brief Get the patch version of the library.
- *
- * This function returns the patch version of the running library
- * (the one you are linked against at runtime).
- *
- * \return The patch version.
- */
-int get_patch_version()
-{
-    return FLUID_SETTINGS_VERSION_PATCH;
-}
-
-
-/** \brief Get the full version of the library as a string.
- *
- * This function returns the major, minor, and patch versions of the
- * running library (the one you are linked against at runtime) in the
- * form of a string.
- *
- * The build version is not made available. In most cases we change
- * the build version only to run a new build, so not code will have
- * changed (some documentation and non-code files may changed between
- * build versions; but the code will work exactly the same way.)
- *
- * \return The library version.
- */
-char const * get_version_string()
-{
-    return FLUID_SETTINGS_VERSION_STRING;
 }
 
 

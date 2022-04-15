@@ -28,7 +28,8 @@ configure_file(
 
 add_library(${PROJECT_NAME} SHARED
     #fluid_settings.cpp
-    settings_definitions.cpp
+    settings.cpp
+    value.cpp
     version.cpp
 )
 

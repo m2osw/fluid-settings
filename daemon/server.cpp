@@ -54,12 +54,6 @@
 #include    <snaplogger/options.h>
 
 
-// snapdev
-//
-#include    <snapdev/join_strings.h>
-#include    <snapdev/map_keyset.h>
-
-
 // boost
 //
 #include    <boost/preprocessor/stringize.hpp>
@@ -87,6 +81,13 @@ advgetopt::option const g_options[] =
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
         , advgetopt::DefaultValue("127.0.0.1:4050")
         , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("definitions")
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
+        , advgetopt::DefaultValue("127.0.0.1:4050")
+        , advgetopt::Help("a colon separated list of paths to fluid-settings definitions.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verbose")
@@ -172,6 +173,9 @@ server::server(int argc, char * argv[])
 
 int server::run()
 {
+    std::string const paths(f_opts.get_string("definitions"));
+    f_definitions.load_definitions(paths);
+
     f_messenger = std::make_shared<messenger>(this, f_address);
     f_communicator->add_connection(f_messenger);
 
@@ -257,49 +261,13 @@ bool server::forget(
 
 std::string server::list_of_options()
 {
-    std::set<std::string> options;
-    snapdev::map_keyset(options, f_opts.get_options());
-    return snapdev::join_strings(options, ",");
+    return f_definitions.list_of_options();
 }
 
 
 bool server::get_value(std::string const & name, std::string & value)
 {
-    advgetopt::option_info::pointer_t o(f_opts.get_option(name));
-    if(o == nullptr)
-    {
-        return false;
-    }
-
-    if(!o->is_defined())
-    {
-        return false;
-    }
-
-    // the value is defined so we can retrieve it, "unfortunately" the
-    // advgetopt option_info object does not track priorities; there we
-    // instead save the latest which happens to be the values from the
-    // configuration file with the highest priority...
-    //
-    // in fluid-settings we have to have our own table because we want
-    // to save all the values with all of their priorities so here we
-    // do the necessary to retrieve the value with the highest priority
-    //
-    auto it(f_values.find(name));
-    if(it == f_values.end())
-    {
-        // weird, if o->is_defined() is true then we should have found this!?
-        //
-        return false;
-    }
-    if(it->second.empty())
-    {
-        return false;
-    }
-
-    value = it->second.rbegin()->f_value;
-
-    return true;
+    return f_definitions.get_value(name, value);
 }
 
 
@@ -309,82 +277,13 @@ bool server::set_value(
     , int priority
     , snapdev::timespec_ex const & timestamp)
 {
-    advgetopt::option_info::pointer_t o(f_opts.get_option(name));
-    if(o == nullptr)
-    {
-        return false;
-    }
-
-    o->set_value(0, value, advgetopt::option_source_t::SOURCE_DYNAMIC);
-    if(!o->is_defined())
-    {
-        return false;
-    }
-
-    value_priority v;
-    v.f_value = value;
-    v.f_priority = priority;
-    v.f_timestamp = timestamp;
-
-    auto it(f_values.find(name));
-    if(it == f_values.end())
-    {
-        // no such value yet, just save that value_priority as is
-        //
-        f_values[name].insert(v);
-    }
-    else
-    {
-        auto vp(it->second.find(v));
-        if(vp == it->second.end())
-        {
-            // not there yet, just insert
-            //
-            it->second.insert(v);
-        }
-        else if(timestamp > vp->f_timestamp)
-        {
-            // it was already there, but message value is more recent
-            // than stored value so keep it
-            //
-            it->second.insert(v);
-        }
-    }
-
-    return true;
+    return f_definitions.set_value(name, value, priority, timestamp);
 }
 
 
 void server::reset_setting(std::string const & name, int priority)
 {
-    advgetopt::option_info::pointer_t o(f_opts.get_option(name));
-    if(o == nullptr)
-    {
-        return;
-    }
-
-    o->reset();
-
-    auto it(f_values.find(name));
-    if(it == f_values.end())
-    {
-        return;
-    }
-
-    value_priority v;
-    v.f_priority = priority;
-    auto vp(it->second.find(v));
-    if(vp == it->second.end())
-    {
-        return;
-    }
-
-    it->second.erase(vp);
-
-    if(it->second.empty())
-    {
-        f_values.erase(it);
-    }
+    return f_definitions.reset_setting(name, priority);
 }
 
 

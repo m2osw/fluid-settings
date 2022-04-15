@@ -24,14 +24,14 @@
  * run loop.
  */
 
+// fluid-settings
+//
+#include    "fluid-settings/settings.h"
+
+
 // advgetopt
 //
 #include    "advgetopt/advgetopt.h"
-
-
-// snapdev
-//
-#include    "snapdev/timespec_operations.h"
 
 
 // eventdispatcher
@@ -73,6 +73,8 @@ private:
     addr::addr              f_address = addr::addr();
     ed::tcp_client_permanent_message_connection::pointer_t
                             f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
+    fluid_settings::settings
+                            f_definitions = fluid_settings::settings();
 
     struct server_service
     {
@@ -99,22 +101,22 @@ private:
 
     listener_t              f_listeners = listener_t();
 
-    struct value_priority
-    {
-        typedef std::set<value_priority>                        set_t;
-        typedef std::map<std::string, value_priority::set_t>    map_t;
-
-        std::string             f_value = std::string();
-        int                     f_priority = 50;
-        snapdev::timespec_ex    f_timestamp = snapdev::timespec_ex();
-
-        bool operator < (value_priority const & rhs) const
-        {
-            return f_priority < rhs.f_priority;
-        }
-    };
-
-    value_priority::map_t   f_values = value_priority::map_t();
+    //struct value_priority
+    //{
+    //    typedef std::set<value_priority>                        set_t;
+    //    typedef std::map<std::string, value_priority::set_t>    map_t;
+    //
+    //    std::string             f_value = std::string();
+    //    int                     f_priority = 50;
+    //    snapdev::timespec_ex    f_timestamp = snapdev::timespec_ex();
+    //
+    //    bool operator < (value_priority const & rhs) const
+    //    {
+    //        return f_priority < rhs.f_priority;
+    //    }
+    //};
+    //
+    //value_priority::map_t   f_values = value_priority::map_t();
 };
 
 

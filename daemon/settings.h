@@ -29,7 +29,7 @@ namespace fluid_settings
 {
 
 
-class settings_definitions
+class settings
 {
 public:
     void                    load_definitions();

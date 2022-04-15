@@ -30,7 +30,7 @@
 
 // self
 //
-#include    "fluid-settings/settings_definitions.h"
+#include    "fluid-settings/settings.h"
 
 #include    "fluid-settings/version.h"
 
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         bool const verbose(opts.is_defined("verbose"));
         bool const symlink(opts.is_defined("symlink"));
 
-        std::string path(fluid_settings::settings_definitions::get_default_path());
+        std::string path(fluid_settings::settings::get_default_path());
         if(path.empty())
         {
             std::cerr << "error: somehow the default fluid settings definitions path is empty.\n";

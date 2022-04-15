@@ -36,7 +36,7 @@
 
 // self
 //
-#include    "fluid-settings/settings_definitions.h"
+#include    "fluid-settings/settings.h"
 
 #include    "fluid-settings/version.h"
 
@@ -54,6 +54,8 @@
 // snapdev
 //
 #include    <snapdev/glob_to_list.h>
+#include    <snapdev/join_strings.h>
+#include    <snapdev/map_keyset.h>
 
 
 // last include
@@ -106,7 +108,7 @@ constexpr advgetopt::options_environment const g_options_environment =
 
 
 
-/** \class settings_definitions
+/** \class settings
  * \brief Load and update the settings definitons.
  *
  * This object is used to load and hold the settings definitions. These
@@ -126,14 +128,32 @@ constexpr advgetopt::options_environment const g_options_environment =
  * This function reads files that include option definitions.
  *
  * By default, the function loads the files installed under the 
- * "definitions path". You can obtain the default path using the
+ * "default definitions path". You can obtain the default path using the
  * get_default_path() function.
  *
- * \param[in] path  The path to use to read the definitions.
+ * \note
+ * You can load files in one specific location using this function and
+ * only one path as the input string.
+ *
+ * \param[in] paths  A list of colon separated paths used to read all the
+ * available definitions.
  *
  * \return true if some configuration files were found, false otherwise.
  */
-bool settings_definitions::load_definitions(std::string const & path)
+bool settings::load_definitions(std::string const & paths)
+{
+    advgetopt::string_list_t list;
+    advgetopt::split_string(paths, list, { ":" });
+    bool result(true);
+    for(auto const & p : list)
+    {
+        result = load_file(p) && result;
+    }
+    return result;
+}
+
+
+bool settings::load_file(std::string const & path)
 {
     f_opts = std::make_shared<advgetopt::getopt>(g_options_environment);
 
@@ -178,12 +198,162 @@ bool settings_definitions::load_definitions(std::string const & path)
 }
 
 
+/** \brief Retrieve the list of options.
+ *
+ * This function reads all the option names and return a comma separated
+ * list of joined options.
+ *
+ * Make sure to call the load_definitions() function at least once
+ * before.
+ *
+ * \return The list of options as a string of comma separated names.
+ */
+std::string settings::list_of_options()
+{
+    if(f_opts == nullptr)
+    {
+        return std::string();
+    }
+
+    std::set<std::string> options;
+    snapdev::map_keyset(options, f_opts->get_options());
+    return snapdev::join_strings(options, ",");
+}
+
+
+bool settings::get_value(std::string const & name, std::string & value)
+{
+    advgetopt::option_info::pointer_t o(f_opts->get_option(name));
+    if(o == nullptr)
+    {
+        return false;
+    }
+
+    if(!o->is_defined())
+    {
+        return false;
+    }
+
+    // the value is defined so we can retrieve it, "unfortunately" the
+    // advgetopt option_info object does not track priorities; there we
+    // instead save the latest which happens to be the values from the
+    // configuration file with the highest priority...
+    //
+    // in fluid-settings we have to have our own table because we want
+    // to save all the values with all of their priorities so here we
+    // do the necessary to retrieve the value with the highest priority
+    //
+    auto it(f_values.find(name));
+    if(it == f_values.end())
+    {
+        // weird, if o->is_defined() is true then we should have found this!?
+        //
+        return false;
+    }
+    if(it->second.empty())
+    {
+        return false;
+    }
+
+    value = it->second.rbegin()->get_value();
+
+    return true;
+}
+
+
+bool settings::set_value(
+      std::string const & name
+    , std::string const & new_value
+    , int priority
+    , snapdev::timespec_ex const & timestamp)
+{
+    advgetopt::option_info::pointer_t o(f_opts->get_option(name));
+    if(o == nullptr)
+    {
+        return false;
+    }
+
+    o->set_value(
+              0
+            , new_value
+            , advgetopt::option_source_t::SOURCE_DYNAMIC);
+    if(!o->is_defined())
+    {
+        return false;
+    }
+
+    value v;
+    v.set_value(new_value, priority, timestamp);
+
+    auto it(f_values.find(name));
+    if(it == f_values.end())
+    {
+        // no such value yet, just save that value_priority as is
+        //
+        f_values[name].insert(v);
+    }
+    else
+    {
+        auto vp(it->second.find(v));
+        if(vp == it->second.end())
+        {
+            // not there yet, just insert
+            //
+            it->second.insert(v);
+        }
+        else if(timestamp > vp->get_timestamp())
+        {
+            // it was already there, but message value is more recent
+            // than stored value so keep it
+            //
+            it->second.insert(v);
+        }
+    }
+
+    return true;
+}
+
+
+void settings::reset_setting(std::string const & name, int priority)
+{
+    advgetopt::option_info::pointer_t o(f_opts->get_option(name));
+    if(o == nullptr)
+    {
+        return;
+    }
+
+    o->reset();
+
+    auto it(f_values.find(name));
+    if(it == f_values.end())
+    {
+        return;
+    }
+
+    snapdev::timespec_ex timestamp;
+    value v;
+    v.set_value("ignore", priority, timestamp);
+    auto vp(it->second.find(v));
+    if(vp == it->second.end())
+    {
+        return;
+    }
+
+    it->second.erase(vp);
+
+    if(it->second.empty())
+    {
+        f_values.erase(it);
+    }
+}
+
+
 /** \brief Retrieve a copy of the path to the settings definitions.
  *
  * By default, all the settings definitions are expected to be saved under
  * this path.
  */
-char const * settings_definitions::get_default_path()
+char const * settings::get_default_path()
 {
     return g_definitions_path;
 }
