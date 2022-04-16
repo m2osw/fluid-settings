@@ -34,6 +34,7 @@
  * The timestamp is specific to a value at a given priority. We need it
  * to make sure that we keep the last value being set.
  */
+#pragma
 
 // snapdev
 //
@@ -54,6 +55,11 @@ namespace fluid_settings
 
 typedef snapdev::timespec_ex    timestamp_t;
 typedef int                     priority_t;
+
+// the priority of -1 is a special value to get the value with the highest
+// priority (which is the default when doing a GET)
+//
+constexpr priority_t const      HIGHEST_PRIORITY = -1;
 
 // the priority of 0 is for a service's defaults
 //
@@ -81,18 +87,17 @@ public:
     void                    set_value(
                                   std::string const & v
                                 , priority_t priority
-                                , snapdev::timespec_ex const & timestamp);
+                                , timestamp_t const & timestamp);
     std::string const &     get_value() const;
     priority_t              get_priority() const;
-    snapdev::timespec_ex const &
-                            get_timestamp() const;
+    timestamp_t const &     get_timestamp() const;
 
     bool                    operator < (value const & rhs) const;
 
 private:
     std::string             f_value = std::string();
     int                     f_priority = ADMINISTRATOR_PRIORITY;
-    snapdev::timespec_ex    f_timestamp = snapdev::timespec_ex();
+    timestamp_t             f_timestamp = timestamp_t();
 };
 
 

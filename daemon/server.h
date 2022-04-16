@@ -58,13 +58,19 @@ public:
     bool                    listen(std::string const & server_name, std::string const & service_name, std::string const & names);
     bool                    forget(std::string const & server_name, std::string const & service_name, std::string const & names);
     std::string             list_of_options();
-    bool                    get_value(std::string const & name, std::string & value);
+    bool                    get_value(
+                                      std::string const & name
+                                    , std::string & value
+                                    , fluid_settings::priority_t priority
+                                    , bool all);
     bool                    set_value(
                                       std::string const & name
                                     , std::string const & value
-                                    , int priority
+                                    , fluid_settings::priority_t priority
                                     , snapdev::timespec_ex const & timestamp);
-    void                    reset_setting(std::string const & name, int priority);
+    bool                    reset_setting(std::string const & name, int priority);
+    void                    value_changed(std::string const & name);
+    void                    save_settings();
 
 private:
     advgetopt::getopt       f_opts;
@@ -73,8 +79,9 @@ private:
     addr::addr              f_address = addr::addr();
     ed::tcp_client_permanent_message_connection::pointer_t
                             f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
+    ed::timer::pointer_t    f_save_timer = ed::timer::pointer_t();
     fluid_settings::settings
-                            f_definitions = fluid_settings::settings();
+                            f_settings = fluid_settings::settings();
 
     struct server_service
     {

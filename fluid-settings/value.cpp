@@ -43,7 +43,7 @@ namespace fluid_settings
 void value::set_value(
       std::string const & v
     , priority_t priority
-    , snapdev::timespec_ex const & timestamp)
+    , timestamp_t const & timestamp)
 {
     if(priority < MINIMUM_PRIORITY
     || priority > MAXIMUM_PRIORITY)

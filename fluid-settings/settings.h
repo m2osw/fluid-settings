@@ -47,20 +47,25 @@ class settings
 {
 public:
     bool                    load_definitions(
-                                  std::string const & path = std::string());
+                                  std::string paths = std::string());
     std::string             list_of_options();
     bool                    get_value(
                                   std::string const & name
-                                , std::string & value);
+                                , std::string & value
+                                , priority_t priority = HIGHEST_PRIORITY
+                                , bool all = false);
     bool                    set_value(
                                   std::string const & name
                                 , std::string const & value
                                 , int priority
                                 , snapdev::timespec_ex const & timestamp);
-    void                    reset_setting(
+    bool                    reset_setting(
                                   std::string const & name
                                 , int priority);
+    void                    load(std::string const & filename);
+    void                    save(std::string const & filename);
 
+    static char const *     get_default_settings_filename();
     static char const *     get_default_path();
 
 private:

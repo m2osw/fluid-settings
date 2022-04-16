@@ -43,7 +43,9 @@
 
 // advgetopt
 //
+#include    <advgetopt/conf_file.h>
 #include    <advgetopt/exception.h>
+#include    <advgetopt/validator_integer.h>
 
 
 // snaplogger
@@ -56,6 +58,8 @@
 #include    <snapdev/glob_to_list.h>
 #include    <snapdev/join_strings.h>
 #include    <snapdev/map_keyset.h>
+#include    <snapdev/string_replace_many.h>
+#include    <snapdev/tokenize_string.h>
 
 
 // last include
@@ -72,7 +76,8 @@ namespace
 {
 
 
-constexpr char const * const g_definitions_path = "/var/lib/fluid-settings";
+constexpr char const * const g_settings_file = "/var/lib/fluid-settings/settings/settings.conf";
+constexpr char const * const g_definitions_path = "/usr/share/fluid-settings/definitions:/var/lib/fluid-settings/definitions";
 constexpr char const * const g_definitions_pattern = "*.ini";
 
 
@@ -140,8 +145,18 @@ constexpr advgetopt::options_environment const g_options_environment =
  *
  * \return true if some configuration files were found, false otherwise.
  */
-bool settings::load_definitions(std::string const & paths)
+bool settings::load_definitions(std::string paths)
 {
+    // completely reset the whole table of options
+    //
+    f_opts = std::make_shared<advgetopt::getopt>(g_options_environment);
+
+    if(!paths.empty())
+    {
+        paths = ':' + paths;
+    }
+    paths = g_definitions_path + paths;
+
     advgetopt::string_list_t list;
     advgetopt::split_string(paths, list, { ":" });
     bool result(true);
@@ -155,18 +170,12 @@ bool settings::load_definitions(std::string const & paths)
 
 bool settings::load_file(std::string const & path)
 {
-    f_opts = std::make_shared<advgetopt::getopt>(g_options_environment);
-
     snapdev::glob_to_list<std::list<std::string>> files;
-
-    if(!files.read_path<>(
-              (path.empty() ? std::string(g_definitions_path) : path)
-            + '/'
-            + g_definitions_pattern))
+    if(!files.read_path<>(path + '/' + g_definitions_pattern))
     {
         SNAP_LOG_ERROR
             << "no fluid-settings definition files found in \""
-            << g_definitions_path
+            << path
             << "\" (with pattern \""
             << g_definitions_pattern
             << "\")."
@@ -221,7 +230,57 @@ std::string settings::list_of_options()
 }
 
 
-bool settings::get_value(std::string const & name, std::string & value)
+/** \brief Retrieved the named value.
+ *
+ * This function searches for a value in the existing settings.
+ *
+ * The value has to exist for anything to be returned.
+ *
+ * If the \p all parameter is set to true, then all the defined values
+ * are returned. In other words, if you have a default, one or two
+ * applications overwritting the value, and ad administrator value,
+ * each on of these gets returned. In this case the result is a comma
+ * separated list of values. If a value includes a comma, then it
+ * will be escaped. Not that the escape only happens if you request
+ * all the values.
+ *
+ * If no value with that name is defined, then the function returns
+ * false allowing the caller to react properly. Note that at the moment
+ * you cannot know whether the value is declared or just undefined (i.e.
+ * whether a definition was properly loaded but the value is not currently
+ * set to anything--i.e. a value without a default returns false until
+ * set for the first time).
+ *
+ * To get a list of valid names, use the list_of_options() function.
+ *
+ * The \p priority parameter is generally set to HIGHEST_PRIORITY. This
+ * allows to get what is viewed as the current value for that specific
+ * \p name. The priority can also be specified to get the value at that
+ * specific priority. For example, the value with priority DEFAULT_PRIORITY
+ * defines the default value and the one at ADMINISTRATOR_PRIORITY is
+ * the one the administrator is expected to edit even if a value with
+ * a higher priority exists.
+ *
+ * Note that if you specific a priority other than HIGHEST_PRIORITY,
+ * then the function may return false even though a value is defined,
+ * only no value is defined at the specific priority you passed to the
+ * function.
+ *
+ * \note
+ * If \p all is set to true, then the \p priority parameter is ignored.
+ *
+ * \param[in] name  The name of the value to retrieve.
+ * \param[out] result  The variable where the value gets saved.
+ * \param[in] priority  The value at that specific priority.
+ * \param[in] all  All the values are returned if true.
+ *
+ * \return true if a value was found, false otherwise.
+ */
+bool settings::get_value(
+      std::string const & name
+    , std::string & result
+    , priority_t priority
+    , bool all)
 {
     advgetopt::option_info::pointer_t o(f_opts->get_option(name));
     if(o == nullptr)
@@ -255,7 +314,40 @@ bool settings::get_value(std::string const & name, std::string & value)
         return false;
     }
 
-    value = it->second.rbegin()->get_value();
+    if(all)
+    {
+        result.clear();
+        for(auto const & v : it->second)
+        {
+            if(!result.empty())
+            {
+                result += ',';
+            }
+            result += snapdev::string_replace_many(
+                              v.get_value()
+                            , { { ",", "\\," } });
+        }
+    }
+    else if(priority == HIGHEST_PRIORITY)
+    {
+        // the default is to return the HIGHEST_PRIORITY
+        //
+        result = it->second.rbegin()->get_value();
+    }
+    else
+    {
+        // a specific priority was give, search for that item
+        //
+        value v;
+        timestamp_t const now(timestamp_t::gettime());
+        v.set_value(std::string(), priority, now);
+        auto vp(it->second.find(v));
+        if(vp == it->second.end())
+        {
+            return false;
+        }
+        result = vp->get_value();
+    }
 
     return true;
 }
@@ -265,7 +357,7 @@ bool settings::set_value(
       std::string const & name
     , std::string const & new_value
     , int priority
-    , snapdev::timespec_ex const & timestamp)
+    , timestamp_t const & timestamp)
 {
     advgetopt::option_info::pointer_t o(f_opts->get_option(name));
     if(o == nullptr)
@@ -314,12 +406,14 @@ bool settings::set_value(
 }
 
 
-void settings::reset_setting(std::string const & name, int priority)
+bool settings::reset_setting(
+      std::string const & name
+    , priority_t priority)
 {
     advgetopt::option_info::pointer_t o(f_opts->get_option(name));
     if(o == nullptr)
     {
-        return;
+        return false;
     }
 
     o->reset();
@@ -327,16 +421,16 @@ void settings::reset_setting(std::string const & name, int priority)
     auto it(f_values.find(name));
     if(it == f_values.end())
     {
-        return;
+        return false;
     }
 
-    snapdev::timespec_ex timestamp;
+    timestamp_t const now(timestamp_t::gettime());
     value v;
-    v.set_value("ignore", priority, timestamp);
+    v.set_value(std::string(), priority, now);
     auto vp(it->second.find(v));
     if(vp == it->second.end())
     {
-        return;
+        return false;
     }
 
     it->second.erase(vp);
@@ -345,6 +439,94 @@ void settings::reset_setting(std::string const & name, int priority)
     {
         f_values.erase(it);
     }
+
+    return true;
+}
+
+
+void settings::load(std::string const & filename)
+{
+    advgetopt::conf_file_setup setup(filename);
+    advgetopt::conf_file::pointer_t data(advgetopt::conf_file::get_conf_file(setup));
+
+    for(auto const & p : data->get_parameters())
+    {
+        std::vector<std::string> sections;
+        snapdev::tokenize_string(sections, p.first, { "::" }, true);
+        std::int64_t priority(0);
+        advgetopt::validator_integer::convert_string(sections.back(), priority);
+        sections.pop_back();
+        std::string const & value(p.second.get_value());
+        std::string::size_type const pos(value.find('|'));
+        if(pos == std::string::npos)
+        {
+            SNAP_LOG_ERROR
+                << "found value \""
+                << value
+                << "\" in parameter \""
+                << p.first
+                << "\" without a | to separate the timestamp from the value."
+                << SNAP_LOG_SEND;
+            continue;
+        }
+        std::int64_t timestamp_nsec(0);
+        advgetopt::validator_integer::convert_string(value.substr(0, pos), timestamp_nsec);
+
+        set_value(
+              snapdev::join_strings(sections, "::")
+            , value.substr(pos + 1)
+            , static_cast<priority_t>(priority)
+            , timestamp_nsec);
+    }
+}
+
+
+void settings::save(std::string const & filename)
+{
+    advgetopt::conf_file_setup setup(filename);
+    advgetopt::conf_file::pointer_t data(advgetopt::conf_file::get_conf_file(setup));
+
+    // TODO: look into a way to not have to do that erase since it is really
+    //       slow (it deletes one parameter at a time and saves all the info)
+    //
+    //       this happens in part because the configuration files are
+    //       cached in memory (for speed) -- deleting the file has not
+    //       effect since the cache is always returned at the moment
+    //
+    data->erase_all_parameters();
+
+    // the default warning is not going to cut it for fluid-settings since
+    // it mentions advgetopt instead and that you can safely edit the file
+    //
+    std::string startup_comment(
+        "# WARNING: AUTO-GENERATED FILE, DO NOT EDIT\n"
+        "#          see `man fluid-settings` for details\n");
+
+    for(auto const & m : f_values)
+    {
+        for(auto const & s : m.second)
+        {
+            std::string const np(std::to_string(s.get_priority()));
+
+            fluid_settings::timestamp_t const t(s.get_timestamp());
+            std::string const tv(std::to_string(t.to_nsec()) + '|' + s.get_value());
+
+            data->set_parameter(
+                  m.first
+                , np
+                , tv
+                , startup_comment);
+            startup_comment.clear();
+        }
+    }
+
+    data->save_configuration(".bak", true, false);
+}
+
+
+char const * settings::get_default_settings_filename()
+{
+    return g_settings_file;
 }
 
 

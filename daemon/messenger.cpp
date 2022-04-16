@@ -33,40 +33,15 @@
 #include    "messenger.h"
 
 
-//// fluid-settings
-////
-//#include    "fluid-settings/version.h"
-//
-//
-//// libutf8
-////
-//#include    <libutf8/iterator.h>
-//#include    <libutf8/libutf8.h>
-//
-//
-//// libaddr
-////
-//#include    <libaddr/addr_parser.h>
-
-
 // advgetopt
 //
 #include    <advgetopt/validator_double.h>
+#include    <advgetopt/validator_integer.h>
 
 
-//// snaplogger
-////
-//#include    <snaplogger/options.h>
+// boost
 //
-//
-//// eventdispatcher
-////
-//#include    <eventdispatcher/dispatcher.h>
-//
-//
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
+#include    <boost/preprocessor/stringize.hpp>
 
 
 // last include
@@ -140,25 +115,44 @@ void messenger::msg_delete(ed::message & msg)
         return;
     }
 
-    int priority(50);
+    int priority(fluid_settings::ADMINISTRATOR_PRIORITY);
     if(msg.has_parameter("priority"))
     {
         priority = msg.get_integer_parameter("priority");
-        if(priority < 0 || priority > 99)
+        if(priority < fluid_settings::MINIMUM_PRIORITY
+        || priority > fluid_settings::MAXIMUM_PRIORITY)
         {
             reply.set_command("FLUID_SETTINGS_ERROR");
-            reply.add_parameter("error", "parameter \"priority\" is out of range (0 .. 99)");
+            reply.add_parameter(
+                      "error"
+                    , "parameter \"priority\" is out of range ("
+                      BOOST_PP_STRINGIZE(fluid_settings::MINIMUM_PRIORITY)
+                      " .. "
+                      BOOST_PP_STRINGIZE(fluid_settings::MAXIMUM_PRIORITY)
+                      ")");
             reply.add_parameter("error_command", "FLUID_SETTINGS_DELETE");
             send_message(reply);
             return;
         }
     }
 
-    f_server->reset_setting(msg.get_parameter("name"), priority);
-
-    reply.set_command("FLUID_SETTINGS_DELETED");
-    reply.add_parameter("name", msg.get_parameter("name"));
-    send_message(reply);
+    std::string const name(msg.get_parameter("name"));
+    if(f_server->reset_setting(name, priority))
+    {
+        reply.set_command("FLUID_SETTINGS_DELETED");
+        reply.add_parameter("name", name);
+        send_message(reply);
+    }
+    else
+    {
+        // we still reply positively so the other side does not have to do
+        // anything special about the fact that nothing was deleted
+        //
+        reply.set_command("FLUID_SETTINGS_DELETED");
+        reply.add_parameter("name", name);
+        reply.add_parameter("message", "nothing was deleted");
+        send_message(reply);
+    }
 }
 
 
@@ -196,6 +190,34 @@ void messenger::msg_forget(ed::message & msg)
 }
 
 
+/** \brief Get a value.
+ *
+ * The message supports the following parameters:
+ *
+ * * `name` (mandatory) -- the name of the parameter to retrieve; you must
+ * retrieve values one at a time; see the msg_listen() to listen to values
+ * instead (i.e. for an app. continuously running)
+ * * `priority` (optional) -- to retrieve a value at a specific priority
+ * such as the DEFAULT_PRIORITY and the ADMINISTRATOR_PRIORITY; the default
+ * is to use the HIGHEST_PRIORITY; note, however, that you cannot set this
+ * parameter to that value (i.e. it is out of bounds)
+ * * `all` (optional) -- to retrieve all the currently available values
+ *
+ * The function may reply with the following messages:
+ *
+ * * FLUID_SETTINGS_ALL_VALUES -- the `all` parameter was set to `true`;
+ * the `values` parameter contains a comma separated list of values (with
+ * commas within values backslash escaped)
+ * * FLUID_SETTINGS_VALUE -- the current or priority specific value
+ * * FLUID_SETTINGS_ERROR -- an error occurred (i.e. value not defined,
+ * missing parameter, etc.)
+ *
+ * \note
+ * The `priority` and `all` parameters are mutually exclusive. Specifying
+ * both at the same time results in an error.
+ *
+ * \param[in] msg  The GET message.
+ */
 void messenger::msg_get(ed::message & msg)
 {
     ed::message reply;
@@ -210,12 +232,54 @@ void messenger::msg_get(ed::message & msg)
         return;
     }
 
+    bool all(false);
+    if(msg.has_parameter("all"))
+    {
+        if(msg.has_parameter("priority"))
+        {
+            reply.set_command("FLUID_SETTINGS_ERROR");
+            reply.add_parameter("error", "parameters \"all\" and \"priority\" are mutually exclusive");
+            reply.add_parameter("error_command", "FLUID_SETTINGS_GET");
+            send_message(reply);
+            return;
+        }
+
+        all = advgetopt::is_true(msg.get_parameter("all"));
+    }
+
+    fluid_settings::priority_t priority(fluid_settings::HIGHEST_PRIORITY);
+    if(msg.has_parameter("priority"))
+    {
+        std::int64_t result(0);
+        if(!advgetopt::validator_integer::convert_string(msg.get_parameter("priority"), result))
+        {
+            reply.set_command("FLUID_SETTINGS_ERROR");
+            reply.add_parameter("error", "parameter \"priority\" must be an integer when defined");
+            reply.add_parameter("error_command", "FLUID_SETTINGS_GET");
+            send_message(reply);
+            return;
+        }
+
+        priority = static_cast<fluid_settings::priority_t>(result);
+    }
+
     std::string const name(msg.get_parameter("name"));
     std::string value;
-    if(f_server->get_value(name, value))
+    if(f_server->get_value(name, value, priority, all))
     {
-        reply.set_command("FLUID_SETTINGS_VALUE");
-        reply.add_parameter("value", value);
+        if(all)
+        {
+            // since commas need special handling in this case, we use
+            // different names for the reply
+            //
+            reply.set_command("FLUID_SETTINGS_ALL_VALUES");
+            reply.add_parameter("values", value);
+        }
+        else
+        {
+            reply.set_command("FLUID_SETTINGS_VALUE");
+            reply.add_parameter("value", value);
+        }
         send_message(reply);
     }
     else

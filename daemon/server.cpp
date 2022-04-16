@@ -32,6 +32,7 @@
 #include    "server.h"
 
 #include    "messenger.h"
+#include    "save_timer.h"
 
 
 // fluid-settings
@@ -78,16 +79,34 @@ advgetopt::option const g_options[] =
     advgetopt::define_option(
           advgetopt::Name("snapcommunicator")
         , advgetopt::Flags(advgetopt::all_flags<
-              advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("127.0.0.1:4050")
         , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
     ),
     advgetopt::define_option(
           advgetopt::Name("definitions")
         , advgetopt::Flags(advgetopt::all_flags<
-              advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("127.0.0.1:4050")
         , advgetopt::Help("a colon separated list of paths to fluid-settings definitions.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("settings")
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("/var/lib/fluid-settings/settings/settings.conf")
+        , advgetopt::Help("a full path and filename to a file where to save the fluid settings.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("save-timeout")
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("5")
+        , advgetopt::Help("number of seconds to wait before saving the latest changes; must be a valid positive number.")
     ),
     advgetopt::define_option(
           advgetopt::Name("verbose")
@@ -174,10 +193,23 @@ server::server(int argc, char * argv[])
 int server::run()
 {
     std::string const paths(f_opts.get_string("definitions"));
-    f_definitions.load_definitions(paths);
+    f_settings.load_definitions(paths);
 
     f_messenger = std::make_shared<messenger>(this, f_address);
     f_communicator->add_connection(f_messenger);
+
+    std::int64_t const timeout(f_opts.get_long("save-timeout"));
+    if(timeout <= 0)
+    {
+        SNAP_LOG_FATAL
+            << "the --save-timeout parameter must be a valid positive number (\""
+            << f_opts.get_string("save-timeout")
+            << "\" is invalid)."
+            << SNAP_LOG_SEND;
+        return 1;
+    }
+    f_save_timer = std::make_shared<save_timer>(this, timeout * 1'000);
+    f_communicator->add_connection(f_save_timer);
 
     f_communicator->run();
 
@@ -261,32 +293,81 @@ bool server::forget(
 
 std::string server::list_of_options()
 {
-    return f_definitions.list_of_options();
+    return f_settings.list_of_options();
 }
 
 
-bool server::get_value(std::string const & name, std::string & value)
+bool server::get_value(
+      std::string const & name
+    , std::string & value
+    , fluid_settings::priority_t priority
+    , bool all)
 {
-    return f_definitions.get_value(name, value);
+    return f_settings.get_value(name, value, priority, all);
 }
 
 
 bool server::set_value(
       std::string const & name
     , std::string const & value
-    , int priority
-    , snapdev::timespec_ex const & timestamp)
+    , fluid_settings::priority_t priority
+    , fluid_settings::timestamp_t const & timestamp)
 {
-    return f_definitions.set_value(name, value, priority, timestamp);
+    if(f_settings.set_value(name, value, priority, timestamp))
+    {
+        value_changed(name);
+        return true;
+    }
+
+    return false;
 }
 
 
-void server::reset_setting(std::string const & name, int priority)
+bool server::reset_setting(
+      std::string const & name
+    , fluid_settings::priority_t priority)
 {
-    return f_definitions.reset_setting(name, priority);
+    if(f_settings.reset_setting(name, priority))
+    {
+        value_changed(name);
+        return true;
+    }
+
+    return false;
 }
 
 
+void server::value_changed(std::string const & name)
+{
+    f_save_timer->set_enable(true);
+
+    // tell the listeners about the new value
+    //
+    std::string value;
+    bool const result(f_settings.get_value(name, value));
+    for(auto const & s : f_listeners[name])
+    {
+        ed::message new_value;
+        new_value.set_command("NEW_VALUE");
+        if(result)
+        {
+            new_value.add_parameter("value", value);
+        }
+        else
+        {
+            new_value.add_parameter("message", "value undefined");
+        }
+        new_value.set_server(s.f_server);
+        new_value.set_service(s.f_service);
+        f_messenger->send_message(new_value);
+    }
+}
+
+
+void server::save_settings()
+{
+    f_settings.save(f_opts.get_string("settings"));
+}
 
 
 
