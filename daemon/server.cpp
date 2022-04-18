@@ -192,8 +192,7 @@ server::server(int argc, char * argv[])
 
 int server::run()
 {
-    std::string const paths(f_opts.get_string("definitions"));
-    f_settings.load_definitions(paths);
+    init_settings();
 
     f_messenger = std::make_shared<messenger>(this, f_address);
     f_communicator->add_connection(f_messenger);
@@ -214,6 +213,15 @@ int server::run()
     f_communicator->run();
 
     return 0;
+}
+
+
+void server::init_settings()
+{
+    std::string const paths(f_opts.get_string("definitions"));
+    f_settings.load_definitions(paths);
+
+    f_settings.load(f_settings.get_default_settings_filename());
 }
 
 

@@ -69,7 +69,7 @@ public:
     static char const *     get_default_path();
 
 private:
-    bool                    load_file(std::string const & path);
+    bool                    load_definition_file(std::string const & path);
 
     advgetopt::getopt::pointer_t
                             f_opts = advgetopt::getopt::pointer_t();

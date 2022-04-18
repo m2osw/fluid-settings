@@ -73,6 +73,8 @@ public:
     void                    save_settings();
 
 private:
+    void                    init_settings();
+
     advgetopt::getopt       f_opts;
     ed::communicator::pointer_t
                             f_communicator = ed::communicator::pointer_t();

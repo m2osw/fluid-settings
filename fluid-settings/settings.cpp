@@ -162,13 +162,13 @@ bool settings::load_definitions(std::string paths)
     bool result(true);
     for(auto const & p : list)
     {
-        result = load_file(p) && result;
+        result = load_definition_file(p) && result;
     }
     return result;
 }
 
 
-bool settings::load_file(std::string const & path)
+bool settings::load_definition_file(std::string const & path)
 {
     snapdev::glob_to_list<std::list<std::string>> files;
     if(!files.read_path<>(path + '/' + g_definitions_pattern))
