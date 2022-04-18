@@ -197,8 +197,8 @@ int server::run()
     f_messenger = std::make_shared<messenger>(this, f_address);
     f_communicator->add_connection(f_messenger);
 
-    std::int64_t const timeout(f_opts.get_long("save-timeout"));
-    if(timeout <= 0)
+    f_save_timeout = f_opts.get_long("save-timeout");
+    if(f_save_timeout <= 0)
     {
         SNAP_LOG_FATAL
             << "the --save-timeout parameter must be a valid positive number (\""
@@ -207,7 +207,7 @@ int server::run()
             << SNAP_LOG_SEND;
         return 1;
     }
-    f_save_timer = std::make_shared<save_timer>(this, timeout * 1'000);
+    f_save_timer = std::make_shared<save_timer>(this, f_save_timeout * 1'000);
     f_communicator->add_connection(f_save_timer);
 
     f_communicator->run();
@@ -347,7 +347,11 @@ bool server::reset_setting(
 
 void server::value_changed(std::string const & name)
 {
-    f_save_timer->set_enable(true);
+    if(!f_save_timer->is_enabled())
+    {
+        f_save_timer->set_enable(true);
+        f_save_timer->set_timeout_delay(f_save_timeout);
+    }
 
     // tell the listeners about the new value
     //

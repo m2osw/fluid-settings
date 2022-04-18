@@ -81,6 +81,7 @@ private:
     addr::addr              f_address = addr::addr();
     ed::tcp_client_permanent_message_connection::pointer_t
                             f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
+    std::int64_t            f_save_timeout = 5;
     ed::timer::pointer_t    f_save_timer = ed::timer::pointer_t();
     fluid_settings::settings
                             f_settings = fluid_settings::settings();
