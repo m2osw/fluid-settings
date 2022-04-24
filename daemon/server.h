@@ -55,6 +55,8 @@ public:
                             server(int argc, char * argv[]);
 
     int                     run();
+    void                    restart();
+    void                    stop(bool quitting);
 
     bool                    listen(
                                   std::string const & server_name
@@ -87,6 +89,7 @@ public:
     void                    remote_value_changed(
                                   ed::message const & msg
                                 , ed::connection_with_send_message::pointer_t const & c);
+    void                    add_replicator(ed::connection_with_send_message::weak_t connection);
 
 private:
     bool                    prepare_settings();
@@ -112,6 +115,9 @@ private:
     std::int64_t            f_gossip_timeout = 60;
     ed::connection::pointer_t
                             f_gossip_timer = ed::connection::pointer_t();
+    int                     f_exit_code = 0;
+    ed::connection_with_send_message::list_weak_t
+                            f_replicators = ed::connection_with_send_message::list_weak_t();
 
     struct server_service
     {
@@ -137,23 +143,6 @@ private:
     typedef std::map<std::string, server_service::set_t>    listener_t;
 
     listener_t              f_listeners = listener_t();
-
-    //struct value_priority
-    //{
-    //    typedef std::set<value_priority>                        set_t;
-    //    typedef std::map<std::string, value_priority::set_t>    map_t;
-    //
-    //    std::string             f_value = std::string();
-    //    int                     f_priority = 50;
-    //    snapdev::timespec_ex    f_timestamp = snapdev::timespec_ex();
-    //
-    //    bool operator < (value_priority const & rhs) const
-    //    {
-    //        return f_priority < rhs.f_priority;
-    //    }
-    //};
-    //
-    //value_priority::map_t   f_values = value_priority::map_t();
 };
 
 

@@ -71,6 +71,14 @@ public:
     virtual             ~messenger() override;
     messenger &         operator = (messenger const &) = delete;
 
+    // tcp_client_permanent_message_connection implementation
+    virtual void        process_connected() override;
+
+    // connection_with_send_message implementation
+    virtual void        ready(ed::message & msg) override;
+    virtual void        restart(ed::message & msg) override;
+    virtual void        stop(bool quitting) override;
+
     void                msg_connected(ed::message & msg);
     void                msg_delete(ed::message & msg);
     void                msg_forget(ed::message & msg);

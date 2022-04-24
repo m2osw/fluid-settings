@@ -103,7 +103,12 @@ ed::dispatcher<messenger>::dispatcher_match::vector_t const g_dispatcher_message
 
 
 messenger::messenger(server * s, addr::addr const & address)
-    : tcp_client_permanent_message_connection(address)
+    : tcp_client_permanent_message_connection(
+              address
+            , ed::mode_t::MODE_PLAIN
+            , ed::DEFAULT_PAUSE_BEFORE_RECONNECTING
+            , true
+            , "fluid_settings")
     , f_server(s)
     , f_dispatcher(std::make_shared<ed::dispatcher<messenger>>(this, g_dispatcher_messages))
 {
@@ -116,6 +121,37 @@ messenger::messenger(server * s, addr::addr const & address)
 
 messenger::~messenger()
 {
+}
+
+
+void messenger::process_connected()
+{
+    tcp_client_permanent_message_connection::process_connected();
+    register_service();
+}
+
+
+void messenger::ready(ed::message & msg)
+{
+    snapdev::NOT_USED(msg);
+
+    // send a first gossip message as soon as we are ready
+    //
+    f_server->send_gossip();
+}
+
+
+void messenger::restart(ed::message & msg)
+{
+    snapdev::NOT_USED(msg);
+
+    f_server->restart();
+}
+
+
+void messenger::stop(bool quitting)
+{
+    f_server->stop(quitting);
 }
 
 

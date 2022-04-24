@@ -44,6 +44,11 @@
 #include    <fluid-settings/version.h>
 
 
+// eventdispatcher
+//
+#include    <eventdispatcher/broadcast_message.h>
+
+
 // advgetopt
 //
 #include    <advgetopt/exception.h>
@@ -233,7 +238,7 @@ int server::run()
 
     f_communicator->run();
 
-    return 0;
+    return f_exit_code;
 }
 
 
@@ -293,10 +298,6 @@ bool server::prepare_save_timer()
     f_save_timer = std::make_shared<save_timer>(this, f_save_timeout * 1'000);
     f_communicator->add_connection(f_save_timer);
 
-    // send a first gossip message immediately
-    //
-    send_gossip();
-
     return true;
 }
 
@@ -317,6 +318,46 @@ bool server::prepare_gossip_timer()
     f_communicator->add_connection(f_gossip_timer);
 
     return true;
+}
+
+
+void server::restart()
+{
+    f_exit_code = 1;
+    stop(false);
+}
+
+
+void server::stop(bool quitting)
+{
+    if(f_messenger != nullptr)
+    {
+        if(quitting
+        || !f_messenger->is_connected())
+        {
+            f_communicator->remove_connection(f_messenger);
+            f_messenger.reset();
+        }
+        else
+        {
+            // in this case we can UNREGISTER from the snapcommunicator
+            //
+            f_messenger->unregister_service();
+        }
+    }
+
+    if(f_communicator != nullptr)
+    {
+        f_communicator->remove_connection(f_gossip_timer);
+        f_gossip_timer.reset();
+
+        f_communicator->remove_connection(f_save_timer);
+        f_save_timer.reset();
+
+        f_communicator->remove_connection(f_listener);
+        f_listener.reset();
+
+    }
 }
 
 
@@ -487,26 +528,29 @@ void server::value_changed(std::string const & name)
     ed::message value_changed;
     value_changed.add_parameter("name", name);
     value_changed.add_parameter("values", f_settings.serialize_value(name));
-    for(auto & c : f_communicator->get_connections())
-    {
-        // fluid-settings we connected to
-        //
-        replicator_out::pointer_t rout(std::dynamic_pointer_cast<replicator_out>(c));
-        if(rout != nullptr)
-        {
-            rout->send_message(value_changed);
-            continue;
-        }
+    ed::broadcast_message(f_replicators, value_changed, false);
 
-        // fluid-settings that connected to us
-        //
-        replicator_in::pointer_t rin(std::dynamic_pointer_cast<replicator_in>(c));
-        if(rin != nullptr)
-        {
-            rin->send_message(value_changed);
-            continue;
-        }
-    }
+    // old way...
+    //for(auto & c : f_communicator->get_connections())
+    //{
+    //    // fluid-settings we connected to
+    //    //
+    //    replicator_out::pointer_t rout(std::dynamic_pointer_cast<replicator_out>(c));
+    //    if(rout != nullptr)
+    //    {
+    //        rout->send_message(value_changed);
+    //        continue;
+    //    }
+    //
+    //    // fluid-settings that connected to us
+    //    //
+    //    replicator_in::pointer_t rin(std::dynamic_pointer_cast<replicator_in>(c));
+    //    if(rin != nullptr)
+    //    {
+    //        rin->send_message(value_changed);
+    //        continue;
+    //    }
+    //}
 }
 
 
@@ -534,7 +578,22 @@ void server::send_gossip()
 void server::connect_to_other_fluid_settings(addr::addr const & their_ip)
 {
     replicator_out::pointer_t connection(std::make_shared<replicator_out>(this, their_ip));
-    f_communicator->add_connection(connection);
+    if(f_communicator->add_connection(connection))
+    {
+        add_replicator(connection);
+    }
+    else
+    {
+        SNAP_LOG_ERROR
+            << "new replicator_out could not be added to ed::communicator."
+            << SNAP_LOG_SEND;
+    }
+}
+
+
+void server::add_replicator(ed::connection_with_send_message::weak_t connection)
+{
+    f_replicators.push_back(connection);
 }
 
 

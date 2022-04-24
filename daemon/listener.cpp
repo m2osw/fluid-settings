@@ -175,13 +175,14 @@ void listener::process_accept()
 //        service->mark_as_remote();
 //    }
 
-    if(!f_communicator->add_connection(service))
+    if(f_communicator->add_connection(service))
     {
-        // this should never happen here since each new creates a
-        // new pointer
-        //
+        f_server->add_replicator(service);
+    }
+    else
+    {
         SNAP_LOG_ERROR
-            << "new client connection could not be added to the ed::communicator list of connections."
+            << "new replicator_in connection could not be added to the ed::communicator."
             << SNAP_LOG_SEND;
     }
 }
