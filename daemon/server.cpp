@@ -32,6 +32,7 @@
 #include    "server.h"
 
 #include    "gossip_timer.h"
+#include    "listener.h"
 #include    "messenger.h"
 #include    "replicator_in.h"
 #include    "replicator_out.h"
@@ -71,6 +72,11 @@
 #include    <boost/preprocessor/stringize.hpp>
 
 
+// C++
+//
+#include    <functional>
+
+
 // last include
 //
 #include    <snapdev/poison.h>
@@ -88,20 +94,28 @@ namespace
 advgetopt::option const g_options[] =
 {
     advgetopt::define_option(
-          advgetopt::Name("snapcommunicator")
-        , advgetopt::Flags(advgetopt::all_flags<
-              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-            , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("127.0.0.1:4050")
-        , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
-    ),
-    advgetopt::define_option(
           advgetopt::Name("definitions")
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("127.0.0.1:4050")
         , advgetopt::Help("a colon separated list of paths to fluid-settings definitions.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("gossip-timeout")
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("60")
+        , advgetopt::Help("number of seconds to wait before sending another FLUID_SETTINGS_GOSSIP message.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("listen")
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("127.0.0.1:4051")
+        , advgetopt::Help("set the IP:port to listen on for connections by other fluid-settings daemons.")
     ),
     advgetopt::define_option(
           advgetopt::Name("settings")
@@ -120,10 +134,12 @@ advgetopt::option const g_options[] =
         , advgetopt::Help("number of seconds to wait before saving the latest changes; must be a valid positive number.")
     ),
     advgetopt::define_option(
-          advgetopt::Name("verbose")
-        , advgetopt::Flags(advgetopt::standalone_all_flags<
-              advgetopt::GETOPT_FLAG_GROUP_OPTIONS>())
-        , advgetopt::Help("show what is happening inside the fluid-settings daemon.")
+          advgetopt::Name("snapcommunicator")
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("127.0.0.1:4050")
+        , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
     ),
     advgetopt::end_options()
 };
@@ -192,22 +208,78 @@ server::server(int argc, char * argv[])
         // exit on any error
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
     }
-
-    f_address = addr::string_to_addr(
-                          f_opts.get_string("snapcommunicator")
-                        , "127.0.0.1"
-                        , 4050
-                        , "tcp");
 }
 
 
 int server::run()
 {
-    init_settings();
+    using prepare_t = bool(server::*)();
+
+    prepare_t initializers[] = {
+        &server::prepare_settings,
+        &server::prepare_messenger,
+        &server::prepare_listener,
+        &server::prepare_save_timer,
+        &server::prepare_gossip_timer,
+    };
+
+    for(auto const & f : initializers)
+    {
+        if(!(this->*f)())
+        {
+            return 1;
+        }
+    }
+
+    f_communicator->run();
+
+    return 0;
+}
+
+
+bool server::prepare_settings()
+{
+    std::string const paths(f_opts.get_string("definitions"));
+    f_settings.load_definitions(paths);
+
+    f_settings.load(f_settings.get_default_settings_filename());
+
+    return true;
+}
+
+
+bool server::prepare_messenger()
+{
+    f_address = addr::string_to_addr(
+                          f_opts.get_string("snapcommunicator")
+                        , "127.0.0.1"
+                        , 4050
+                        , "tcp");
 
     f_messenger = std::make_shared<messenger>(this, f_address);
     f_communicator->add_connection(f_messenger);
 
+    return true;
+}
+
+
+bool server::prepare_listener()
+{
+    f_listener_address = addr::string_to_addr(
+                          f_opts.get_string("listen")
+                        , "127.0.0.1"
+                        , 4052
+                        , "tcp");
+
+    f_listener = std::make_shared<listener>(this, f_listener_address, 5);
+    f_communicator->add_connection(f_listener);
+
+    return true;
+}
+
+
+bool server::prepare_save_timer()
+{
     f_save_timeout = f_opts.get_long("save-timeout");
     if(f_save_timeout <= 0)
     {
@@ -216,11 +288,21 @@ int server::run()
             << f_opts.get_string("save-timeout")
             << "\" is invalid)."
             << SNAP_LOG_SEND;
-        return 1;
+        return false;
     }
     f_save_timer = std::make_shared<save_timer>(this, f_save_timeout * 1'000);
     f_communicator->add_connection(f_save_timer);
 
+    // send a first gossip message immediately
+    //
+    send_gossip();
+
+    return true;
+}
+
+
+bool server::prepare_gossip_timer()
+{
     f_gossip_timeout = f_opts.get_long("gossip-timeout");
     if(f_gossip_timeout <= 0)
     {
@@ -229,25 +311,12 @@ int server::run()
             << f_opts.get_string("gossip-timeout")
             << "\" is invalid)."
             << SNAP_LOG_SEND;
-        return 1;
+        return false;
     }
     f_gossip_timer = std::make_shared<gossip_timer>(this, f_gossip_timeout * 1'000);
     f_communicator->add_connection(f_gossip_timer);
 
-    send_gossip();
-
-    f_communicator->run();
-
-    return 0;
-}
-
-
-void server::init_settings()
-{
-    std::string const paths(f_opts.get_string("definitions"));
-    f_settings.load_definitions(paths);
-
-    f_settings.load(f_settings.get_default_settings_filename());
+    return true;
 }
 
 
@@ -447,9 +516,9 @@ void server::save_settings()
 }
 
 
-addr::addr const & server::get_messenger_address() const
+addr::addr const & server::get_listener_address() const
 {
-    return f_address;
+    return f_listener_address;
 }
 
 
@@ -457,7 +526,7 @@ void server::send_gossip()
 {
     ed::message gossip;
     gossip.set_command("FLUID_SETTINGS_GOSSIP");
-    gossip.add_parameter("my_ip", f_address.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT));
+    gossip.add_parameter("my_ip", f_listener_address.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT));
     f_messenger->send_message(gossip);
 }
 
@@ -480,6 +549,10 @@ void server::remote_value_changed(
     if(!msg.has_parameter("name")
     || !msg.has_parameter("values"))
     {
+        SNAP_LOG_ERROR
+            << "VALUE_CHANGED message is missing a \"name\" and/or \"value\" parameter."
+            << SNAP_LOG_SEND;
+
         reply.set_command("FLUID_SETTINGS_ERROR");
         reply.add_parameter("error", "parameter \"name\" or \"values\" missing in message");
         reply.add_parameter("error_command", "VALUE_CHANGED");
@@ -488,6 +561,19 @@ void server::remote_value_changed(
     }
 
     std::string const name(msg.get_parameter("name"));
+    if(name.empty())
+    {
+        SNAP_LOG_ERROR
+            << "invalid name found in VALUE_CHANGED message: it cannot be empty."
+            << SNAP_LOG_SEND;
+
+        reply.set_command("FLUID_SETTINGS_ERROR");
+        reply.add_parameter("error", "parameter \"name\" cannot be empty");
+        reply.add_parameter("error_command", "VALUE_CHANGED");
+        c->send_message(reply);
+        return;
+    }
+
     std::string const values(msg.get_parameter("values"));
 
     // one value per line
@@ -515,10 +601,26 @@ void server::remote_value_changed(
         }
 
         std::int64_t priority(0);
-        advgetopt::validator_integer::convert_string(params[0], priority);
+        if(!advgetopt::validator_integer::convert_string(params[0], priority))
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "invalid priority \""
+                << params[0]
+                << "\" found in VALUE_CHANGED message."
+                << SNAP_LOG_SEND;
+            continue;
+        }
 
         std::int64_t timestamp_nsec(0);
-        advgetopt::validator_integer::convert_string(params[1], timestamp_nsec);
+        if(!advgetopt::validator_integer::convert_string(params[1], timestamp_nsec))
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "invalid timestamp \""
+                << params[1]
+                << "\" found in VALUE_CHANGED message."
+                << SNAP_LOG_SEND;
+            continue;
+        }
 
         std::string const value(snapdev::string_replace_many(
                     params[2],

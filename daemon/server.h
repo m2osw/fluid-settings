@@ -38,6 +38,7 @@
 //
 #include    <eventdispatcher/communicator.h>
 #include    <eventdispatcher/tcp_client_permanent_message_connection.h>
+#include    <eventdispatcher/tcp_server_connection.h>
 
 
 
@@ -79,7 +80,7 @@ public:
                                 , int priority);
     void                    value_changed(std::string const & name);
     void                    save_settings();
-    addr::addr const &      get_messenger_address() const;
+    addr::addr const &      get_listener_address() const;
     void                    send_gossip();
     void                    connect_to_other_fluid_settings(
                                   addr::addr const & their_ip);
@@ -88,14 +89,21 @@ public:
                                 , ed::connection_with_send_message::pointer_t const & c);
 
 private:
-    void                    init_settings();
+    bool                    prepare_settings();
+    bool                    prepare_messenger();
+    bool                    prepare_listener();
+    bool                    prepare_save_timer();
+    bool                    prepare_gossip_timer();
 
     advgetopt::getopt       f_opts;
     ed::communicator::pointer_t
                             f_communicator = ed::communicator::pointer_t();
     addr::addr              f_address = addr::addr();
+    addr::addr              f_listener_address = addr::addr();
     ed::tcp_client_permanent_message_connection::pointer_t
                             f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
+    ed::tcp_server_connection::pointer_t
+                            f_listener = ed::tcp_server_connection::pointer_t();
     std::int64_t            f_save_timeout = 5;
     ed::timer::pointer_t    f_save_timer = ed::timer::pointer_t();
     fluid_settings::settings

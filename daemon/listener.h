@@ -30,11 +30,6 @@
 #include    "server.h"
 
 
-// eventdispatcher
-//
-#include    <eventdispatcher/tcp_server_connection.h>
-
-
 
 namespace fluid_settings_daemon
 {

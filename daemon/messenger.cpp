@@ -339,7 +339,7 @@ void messenger::connect_from_gossip(ed::message & msg, bool send_reply)
 
     std::string const their_ip(msg.get_parameter("my_ip"));
 
-    addr::addr const a(f_server->get_messenger_address());
+    addr::addr const a(f_server->get_listener_address());
     addr::addr const b(addr::string_to_addr(
                           their_ip
                         , "127.0.0.1"
