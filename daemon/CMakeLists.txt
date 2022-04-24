@@ -31,7 +31,11 @@ add_executable(${PROJECT_NAME}
     server.cpp
     version.cpp
 
+    gossip_timer.cpp
+    listener.cpp
     messenger.cpp
+    replicator_in.cpp
+    replicator_out.cpp
     save_timer.cpp
     #settings.cpp
     #tcp_listener.cpp

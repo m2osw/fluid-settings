@@ -46,6 +46,9 @@ namespace fluid_settings
 class settings
 {
 public:
+    static constexpr char const     FIELD_SEPARATOR = '|';
+    static constexpr char const     VALUE_SEPARATOR = '\n';
+
     bool                    load_definitions(
                                   std::string paths = std::string());
     std::string             list_of_options();
@@ -64,6 +67,7 @@ public:
                                 , int priority);
     void                    load(std::string const & filename);
     void                    save(std::string const & filename);
+    std::string             serialize_value(std::string const & name);
 
     static char const *     get_default_settings_filename();
     static char const *     get_default_path();

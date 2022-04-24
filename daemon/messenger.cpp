@@ -39,6 +39,11 @@
 #include    <advgetopt/validator_integer.h>
 
 
+// libaddr
+//
+#include    <libaddr/addr_parser.h>
+
+
 // boost
 //
 #include    <boost/preprocessor/stringize.hpp>
@@ -54,9 +59,15 @@ namespace fluid_settings_daemon
 {
 
 
+namespace
+{
 
 ed::dispatcher<messenger>::dispatcher_match::vector_t const g_dispatcher_messages =
 {
+    {
+          "FLUID_SETTINGS_CONNECTED"
+        , &messenger::msg_connected
+    },
     {
           "FLUID_SETTINGS_DELETE"
         , &messenger::msg_delete
@@ -68,6 +79,10 @@ ed::dispatcher<messenger>::dispatcher_match::vector_t const g_dispatcher_message
     {
           "FLUID_SETTINGS_GET"
         , &messenger::msg_get
+    },
+    {
+          "FLUID_SETTINGS_GOSSIP"
+        , &messenger::msg_gossip
     },
     {
           "FLUID_SETTINGS_LIST"
@@ -82,6 +97,9 @@ ed::dispatcher<messenger>::dispatcher_match::vector_t const g_dispatcher_message
         , &messenger::msg_put
     },
 };
+
+} // no name namespace
+
 
 
 messenger::messenger(server * s, addr::addr const & address)
@@ -98,6 +116,12 @@ messenger::messenger(server * s, addr::addr const & address)
 
 messenger::~messenger()
 {
+}
+
+
+void messenger::msg_connected(ed::message & msg)
+{
+    connect_from_gossip(msg, false);
 }
 
 
@@ -288,6 +312,57 @@ void messenger::msg_get(ed::message & msg)
         reply.add_parameter("error", "no parameter named \"" + name + "\"");
         reply.add_parameter("error_command", "FLUID_SETTINGS_GET");
         reply.add_parameter("name", name);
+        send_message(reply);
+    }
+}
+
+
+void messenger::msg_gossip(ed::message & msg)
+{
+    connect_from_gossip(msg, true);
+}
+
+
+void messenger::connect_from_gossip(ed::message & msg, bool send_reply)
+{
+    ed::message reply;
+    reply.reply_to(msg);
+
+    if(!msg.has_parameter("my_ip"))
+    {
+        reply.set_command("FLUID_SETTINGS_ERROR");
+        reply.add_parameter("error", "parameter \"my_ip\" missing in message");
+        reply.add_parameter("error_command", "FLUID_SETTINGS_GOSSIP");
+        send_message(reply);
+        return;
+    }
+
+    std::string const their_ip(msg.get_parameter("my_ip"));
+
+    addr::addr const a(f_server->get_messenger_address());
+    addr::addr const b(addr::string_to_addr(
+                          their_ip
+                        , "127.0.0.1"
+                        , 4051
+                        , "tcp"));
+
+    if(a < b)
+    {
+        f_server->connect_to_other_fluid_settings(b);
+
+        reply.add_parameter("message", "we sent you a connection request");
+    }
+    else
+    {
+        reply.add_parameter("message", "you connect to us");
+    }
+
+
+    if(send_reply)
+    {
+        reply.set_command("FLUID_SETTINGS_CONNECTED");
+        reply.add_parameter("my_ip", a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT));
+
         send_message(reply);
     }
 }

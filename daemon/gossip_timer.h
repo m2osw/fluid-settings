@@ -48,7 +48,7 @@
 
 // eventdispatcher
 //
-#include    <eventdispatcher/dispatcher.h>
+#include    <eventdispatcher/timer.h>
 
 
 
@@ -60,32 +60,21 @@ namespace fluid_settings_daemon
 class server;
 
 
-class messenger
-    : public ed::tcp_client_permanent_message_connection
+class gossip_timer
+    : public ed::timer
 {
 public:
-    typedef std::shared_ptr<messenger>      pointer_t;
+    typedef std::shared_ptr<gossip_timer>      pointer_t;
 
-                        messenger(server * s, addr::addr const & address);
-                        messenger(messenger const &) = delete;
-    virtual             ~messenger() override;
-    messenger &         operator = (messenger const &) = delete;
+                        gossip_timer(server * s, std::int64_t timeout_us);
+                        gossip_timer(gossip_timer const &) = delete;
+    virtual             ~gossip_timer() override;
+    gossip_timer &      operator = (gossip_timer const &) = delete;
 
-    void                msg_connected(ed::message & msg);
-    void                msg_delete(ed::message & msg);
-    void                msg_forget(ed::message & msg);
-    void                msg_get(ed::message & msg);
-    void                msg_gossip(ed::message & msg);
-    void                msg_list(ed::message & msg);
-    void                msg_listen(ed::message & msg);
-    void                msg_put(ed::message & msg);
+    virtual void        process_timeout() override;
 
 private:
-    void                connect_from_gossip(ed::message & msg, bool send_reply);
-
     server *            f_server = nullptr;
-    ed::dispatcher<messenger>::pointer_t
-                        f_dispatcher = ed::dispatcher<messenger>::pointer_t();
 };
 
 

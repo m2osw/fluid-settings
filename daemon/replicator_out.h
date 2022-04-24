@@ -60,32 +60,38 @@ namespace fluid_settings_daemon
 class server;
 
 
-class messenger
+class replicator_out
     : public ed::tcp_client_permanent_message_connection
 {
 public:
-    typedef std::shared_ptr<messenger>      pointer_t;
+    typedef std::shared_ptr<replicator_out> pointer_t;
 
-                        messenger(server * s, addr::addr const & address);
-                        messenger(messenger const &) = delete;
-    virtual             ~messenger() override;
-    messenger &         operator = (messenger const &) = delete;
+    static constexpr int const              REPLICATOR_ERROR_LIMIT = 10;
 
-    void                msg_connected(ed::message & msg);
-    void                msg_delete(ed::message & msg);
-    void                msg_forget(ed::message & msg);
-    void                msg_get(ed::message & msg);
-    void                msg_gossip(ed::message & msg);
-    void                msg_list(ed::message & msg);
-    void                msg_listen(ed::message & msg);
-    void                msg_put(ed::message & msg);
+                        replicator_out(server * s, addr::addr const & address);
+                        replicator_out(replicator_out const &) = delete;
+    virtual             ~replicator_out() override;
+    replicator_out &    operator = (replicator_out const &) = delete;
+
+    bool                count_errors();
+    void                reset_errors();
+
+    // tcp_client_permanent_message_connection implementation
+    //
+    virtual void        process_error() override;
+    virtual void        process_hup() override;
+    virtual void        process_invalid() override;
+    virtual void        process_connected() override;
+
+    void                msg_value_changed(ed::message & msg);
 
 private:
-    void                connect_from_gossip(ed::message & msg, bool send_reply);
-
     server *            f_server = nullptr;
-    ed::dispatcher<messenger>::pointer_t
-                        f_dispatcher = ed::dispatcher<messenger>::pointer_t();
+    ed::communicator::pointer_t
+                        f_communicator = ed::communicator::pointer_t();
+    ed::dispatcher<replicator_out>::pointer_t
+                        f_dispatcher = ed::dispatcher<replicator_out>::pointer_t();
+    int                 f_errors = 0;
 };
 
 

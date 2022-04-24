@@ -55,22 +55,37 @@ public:
 
     int                     run();
 
-    bool                    listen(std::string const & server_name, std::string const & service_name, std::string const & names);
-    bool                    forget(std::string const & server_name, std::string const & service_name, std::string const & names);
+    bool                    listen(
+                                  std::string const & server_name
+                                , std::string const & service_name
+                                , std::string const & names);
+    bool                    forget(
+                                  std::string const & server_name
+                                , std::string const & service_name
+                                , std::string const & names);
     std::string             list_of_options();
     bool                    get_value(
-                                      std::string const & name
-                                    , std::string & value
-                                    , fluid_settings::priority_t priority
-                                    , bool all);
+                                  std::string const & name
+                                , std::string & value
+                                , fluid_settings::priority_t priority
+                                , bool all);
     bool                    set_value(
-                                      std::string const & name
-                                    , std::string const & value
-                                    , fluid_settings::priority_t priority
-                                    , snapdev::timespec_ex const & timestamp);
-    bool                    reset_setting(std::string const & name, int priority);
+                                  std::string const & name
+                                , std::string const & value
+                                , fluid_settings::priority_t priority
+                                , snapdev::timespec_ex const & timestamp);
+    bool                    reset_setting(
+                                  std::string const & name
+                                , int priority);
     void                    value_changed(std::string const & name);
     void                    save_settings();
+    addr::addr const &      get_messenger_address() const;
+    void                    send_gossip();
+    void                    connect_to_other_fluid_settings(
+                                  addr::addr const & their_ip);
+    void                    remote_value_changed(
+                                  ed::message const & msg
+                                , ed::connection_with_send_message::pointer_t const & c);
 
 private:
     void                    init_settings();
@@ -85,6 +100,10 @@ private:
     ed::timer::pointer_t    f_save_timer = ed::timer::pointer_t();
     fluid_settings::settings
                             f_settings = fluid_settings::settings();
+    bool                    f_remote_change = false;
+    std::int64_t            f_gossip_timeout = 60;
+    ed::connection::pointer_t
+                            f_gossip_timer = ed::connection::pointer_t();
 
     struct server_service
     {

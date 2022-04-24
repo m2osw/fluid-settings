@@ -31,7 +31,10 @@
 //
 #include    "server.h"
 
+#include    "gossip_timer.h"
 #include    "messenger.h"
+#include    "replicator_in.h"
+#include    "replicator_out.h"
 #include    "save_timer.h"
 
 
@@ -43,6 +46,7 @@
 // advgetopt
 //
 #include    <advgetopt/exception.h>
+#include    <advgetopt/validator_integer.h>
 
 
 // libaddr
@@ -53,6 +57,13 @@
 // snaplogger
 //
 #include    <snaplogger/options.h>
+
+
+// snapdev
+//
+#include    <snapdev/safe_variable.h>
+#include    <snapdev/string_replace_many.h>
+#include    <snapdev/tokenize_string.h>
 
 
 // boost
@@ -209,6 +220,21 @@ int server::run()
     }
     f_save_timer = std::make_shared<save_timer>(this, f_save_timeout * 1'000);
     f_communicator->add_connection(f_save_timer);
+
+    f_gossip_timeout = f_opts.get_long("gossip-timeout");
+    if(f_gossip_timeout <= 0)
+    {
+        SNAP_LOG_FATAL
+            << "the --gossip-timeout parameter must be a valid positive number (\""
+            << f_opts.get_string("gossip-timeout")
+            << "\" is invalid)."
+            << SNAP_LOG_SEND;
+        return 1;
+    }
+    f_gossip_timer = std::make_shared<gossip_timer>(this, f_gossip_timeout * 1'000);
+    f_communicator->add_connection(f_gossip_timer);
+
+    send_gossip();
 
     f_communicator->run();
 
@@ -373,12 +399,142 @@ void server::value_changed(std::string const & name)
         new_value.set_service(s.f_service);
         f_messenger->send_message(new_value);
     }
+
+    // if this change happened because another fluid-settings sent us
+    // a message, avoid broadcasting back
+    //
+    // TODO: verify that this is really correct... while everyone is
+    //       properly connected, we're certainly just fine, if someone
+    //       was not connected to the sender, maybe it is to this
+    //       instance and it should also be sent a copy of the new value
+    //
+    if(f_remote_change)
+    {
+        return;
+    }
+
+    // next we want to tell the other fluid-settings that things changed
+    //
+    ed::message value_changed;
+    value_changed.add_parameter("name", name);
+    value_changed.add_parameter("values", f_settings.serialize_value(name));
+    for(auto & c : f_communicator->get_connections())
+    {
+        // fluid-settings we connected to
+        //
+        replicator_out::pointer_t rout(std::dynamic_pointer_cast<replicator_out>(c));
+        if(rout != nullptr)
+        {
+            rout->send_message(value_changed);
+            continue;
+        }
+
+        // fluid-settings that connected to us
+        //
+        replicator_in::pointer_t rin(std::dynamic_pointer_cast<replicator_in>(c));
+        if(rin != nullptr)
+        {
+            rin->send_message(value_changed);
+            continue;
+        }
+    }
 }
 
 
 void server::save_settings()
 {
     f_settings.save(f_opts.get_string("settings"));
+}
+
+
+addr::addr const & server::get_messenger_address() const
+{
+    return f_address;
+}
+
+
+void server::send_gossip()
+{
+    ed::message gossip;
+    gossip.set_command("FLUID_SETTINGS_GOSSIP");
+    gossip.add_parameter("my_ip", f_address.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT));
+    f_messenger->send_message(gossip);
+}
+
+
+void server::connect_to_other_fluid_settings(addr::addr const & their_ip)
+{
+    replicator_out::pointer_t connection(std::make_shared<replicator_out>(this, their_ip));
+    f_communicator->add_connection(connection);
+}
+
+
+void server::remote_value_changed(
+      ed::message const & msg
+    , ed::connection_with_send_message::pointer_t const & c)
+{
+    snapdev::safe_variable<bool> safe(f_remote_change, true, false);
+    ed::message reply;
+    reply.reply_to(msg);
+
+    if(!msg.has_parameter("name")
+    || !msg.has_parameter("values"))
+    {
+        reply.set_command("FLUID_SETTINGS_ERROR");
+        reply.add_parameter("error", "parameter \"name\" or \"values\" missing in message");
+        reply.add_parameter("error_command", "VALUE_CHANGED");
+        c->send_message(reply);
+        return;
+    }
+
+    std::string const name(msg.get_parameter("name"));
+    std::string const values(msg.get_parameter("values"));
+
+    // one value per line
+    // lines are separated by fluid_settings::VALUE_SEPARATOR ('\n')
+    //
+    // one value has three parameters: priority, timestamp, actual value
+    // parameters are separated by fluid_settings::FIELD_SEPARATOR ('|')
+    //
+    std::string const separator(std::string(1, fluid_settings::settings::FIELD_SEPARATOR));
+    std::list<std::string> lines;
+    snapdev::tokenize_string(lines, values, { "\n" });
+    for(auto const & l : lines)
+    {
+        std::vector<std::string> params;
+        snapdev::tokenize_string(params, l, { "|" });
+        if(params.size() != 3)
+        {
+            // skip invalid entries
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "invalid value \""
+                << l
+                << "\" found in VALUE_CHANGED message."
+                << SNAP_LOG_SEND;
+            continue;
+        }
+
+        std::int64_t priority(0);
+        advgetopt::validator_integer::convert_string(params[0], priority);
+
+        std::int64_t timestamp_nsec(0);
+        advgetopt::validator_integer::convert_string(params[1], timestamp_nsec);
+
+        std::string const value(snapdev::string_replace_many(
+                    params[2],
+                    {
+                        { "\\P", separator },
+                        { "\\S", "\\" },
+                        { "\\n", "\n" },
+                        { "\\r", "\r" },
+                    }));
+
+        set_value(
+              name
+            , value
+            , static_cast<fluid_settings::priority_t>(priority)
+            , timestamp_nsec);
+    }
 }
 
 

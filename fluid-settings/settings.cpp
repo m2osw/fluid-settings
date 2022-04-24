@@ -509,7 +509,10 @@ void settings::save(std::string const & filename)
             std::string const np(std::to_string(s.get_priority()));
 
             fluid_settings::timestamp_t const t(s.get_timestamp());
-            std::string const tv(std::to_string(t.to_nsec()) + '|' + s.get_value());
+
+            std::string tv(std::to_string(t.to_nsec()));
+            tv += FIELD_SEPARATOR;
+            tv += s.get_value();
 
             data->set_parameter(
                   m.first
@@ -521,6 +524,44 @@ void settings::save(std::string const & filename)
     }
 
     data->save_configuration(".bak", true, false);
+}
+
+
+std::string settings::serialize_value(std::string const & name)
+{
+    std::string result;
+
+    auto m(f_values.find(name));
+    if(m == f_values.end())
+    {
+        return result;
+    }
+
+    std::string const separator(1, FIELD_SEPARATOR);
+    for(auto const & s : m->second)
+    {
+        result += std::to_string(s.get_priority());
+        result += FIELD_SEPARATOR;
+
+        fluid_settings::timestamp_t const t(s.get_timestamp());
+        result += std::to_string(t.to_nsec());
+        result += FIELD_SEPARATOR;
+
+        // the value may include
+        //
+        result += snapdev::string_replace_many(
+                    s.get_value(),
+                    {
+                        { separator, "\\P" },
+                        { "\\", "\\S" },
+                        { "\n", "\\n" },
+                        { "\r", "\\r" },
+                    });
+
+        result += VALUE_SEPARATOR;
+    }
+
+    return result;
 }
 
 
