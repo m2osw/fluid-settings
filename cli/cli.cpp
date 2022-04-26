@@ -33,6 +33,7 @@
 #include    "cli.h"
 
 #include    "client.h"
+#include    "cli_timer.h"
 
 
 // fluid-settings
@@ -273,8 +274,11 @@ cli::cli(int argc, char *argv[])
 int cli::run()
 {
     f_client = std::make_shared<client>(this, f_address);
-    f_client->set_timeout_delay(10'000'000LL); // TODO: add command line option for that number
     f_communicator->add_connection(f_client);
+
+    // TODO: add command line option for the timeout
+    f_timer = std::make_shared<cli_timer>(this, 10'000'000LL);
+    f_communicator->add_connection(f_timer);
 
     ed::message msg;
     if(f_opts.is_defined("delete"))
@@ -310,7 +314,9 @@ int cli::run()
         f_client->send_message(msg);
     }
 
+std::cerr << "==== START RUNNING ====\n";
     f_communicator->run();
+std::cerr << "==== END RUNNING ====\n";
 
     return f_success ? 0 : 1;
 }
@@ -319,7 +325,9 @@ int cli::run()
 void cli::deleted()
 {
     f_success = true;
+
     f_communicator->remove_connection(f_client);
+    f_communicator->remove_connection(f_timer);
 }
 
 
@@ -341,6 +349,7 @@ void cli::failed(ed::message & msg)
     }
 
     f_communicator->remove_connection(f_client);
+    f_communicator->remove_connection(f_timer);
 }
 
 
@@ -420,6 +429,7 @@ void cli::list(ed::message & msg)
     }
 
     f_communicator->remove_connection(f_client);
+    f_communicator->remove_connection(f_timer);
 }
 
 
@@ -427,6 +437,7 @@ void cli::updated()
 {
     f_success = true;
     f_communicator->remove_connection(f_client);
+    f_communicator->remove_connection(f_timer);
 }
 
 
@@ -444,6 +455,7 @@ void cli::value(ed::message & msg)
     }
 
     f_communicator->remove_connection(f_client);
+    f_communicator->remove_connection(f_timer);
 }
 
 
@@ -471,6 +483,7 @@ void cli::timeout()
         << SNAP_LOG_SEND;
 
     f_communicator->remove_connection(f_client);
+    f_communicator->remove_connection(f_timer);
 }
 
 

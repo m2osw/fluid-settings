@@ -1,3 +1,4 @@
 usr/sbin/fluidsettings
 conf/fluid-settings.conf                etc/eventdispatcher/
+conf/fluid-settings.service             usr/share/snapcommunicator/services/
 conf/README.md                          etc/eventdispatcher/eventdispatcher.d/

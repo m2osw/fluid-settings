@@ -41,9 +41,14 @@
 #include    "cli.h"
 
 
+// libaddr
+//
+#include    <libaddr/addr.h>
+
+
 // eventdispatcher
 //
-#include    <eventdispatcher/dispatcher.h>
+#include    <eventdispatcher/timer.h>
 
 
 
@@ -52,26 +57,22 @@ namespace fluid_settings_cli
 
 
 
-class client
-    : public ed::tcp_client_permanent_message_connection
+class cli_timer
+    : public ed::timer
 {
 public:
-                        client(cli * parent, addr::addr const & address);
-                        client(client const &) = delete;
-    virtual             ~client() override;
-    client &            operator = (client const &) = delete;
+    typedef std::shared_ptr<cli_timer>      pointer_t;
 
-    void                msg_deleted(ed::message & msg);
-    void                msg_failed(ed::message & msg);
-    void                msg_options(ed::message & msg);
-    void                msg_updated(ed::message & msg);
-    void                msg_value(ed::message & msg);
-    void                msg_value_updated(ed::message & msg);
+                        cli_timer(cli * c, std::int64_t timeout_us);
+                        cli_timer(cli_timer const &) = delete;
+    virtual             ~cli_timer() override;
+    cli_timer &         operator = (cli_timer const &) = delete;
+
+    // timer implementation
+    virtual void        process_timeout() override;
 
 private:
-    cli *               f_parent = nullptr;
-    ed::dispatcher<client>::pointer_t
-                        f_dispatcher = ed::dispatcher<client>::pointer_t();
+    cli *               f_cli = nullptr;
 };
 
 

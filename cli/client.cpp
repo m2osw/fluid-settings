@@ -33,42 +33,6 @@
 #include    "client.h"
 
 
-//// fluid-settings
-////
-//#include    "fluid-settings/version.h"
-//
-//
-//// libutf8
-////
-//#include    <libutf8/iterator.h>
-//#include    <libutf8/libutf8.h>
-//
-//
-//// libaddr
-////
-//#include    <libaddr/addr_parser.h>
-//
-//
-//// advgetopt
-////
-//#include    <advgetopt/exception.h>
-//
-//
-//// snaplogger
-////
-//#include    <snaplogger/options.h>
-//
-//
-//// eventdispatcher
-////
-//#include    <eventdispatcher/dispatcher.h>
-//
-//
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
-
-
 // last include
 //
 #include    <snapdev/poison.h>
@@ -123,12 +87,6 @@ client::client(cli * parent, addr::addr const & address)
 
 client::~client()
 {
-}
-
-
-void client::process_timeout()
-{
-    f_parent->timeout();
 }
 
 

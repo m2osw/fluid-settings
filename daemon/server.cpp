@@ -119,7 +119,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("127.0.0.1:4051")
+        , advgetopt::DefaultValue("127.0.0.1:4049")
         , advgetopt::Help("set the IP:port to listen on for connections by other fluid-settings daemons.")
     ),
     advgetopt::define_option(

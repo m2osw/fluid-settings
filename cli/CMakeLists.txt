@@ -25,6 +25,7 @@ add_executable(${PROJECT_NAME}
     main.cpp
     cli.cpp
     client.cpp
+    cli_timer.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

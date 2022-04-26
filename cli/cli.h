@@ -77,6 +77,8 @@ private:
     addr::addr          f_address = addr::addr();
     ed::tcp_client_permanent_message_connection::pointer_t
                         f_client = ed::tcp_client_permanent_message_connection::pointer_t();
+    ed::connection::pointer_t
+                        f_timer = ed::connection::pointer_t();
     bool                f_success = false;
 };
 
