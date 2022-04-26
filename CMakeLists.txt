@@ -49,6 +49,7 @@ add_subdirectory(cli)
 add_subdirectory(tools)
 add_subdirectory(doc)
 add_subdirectory(cmake)
+add_subdirectory(conf)
 add_subdirectory(tests)
 
 
