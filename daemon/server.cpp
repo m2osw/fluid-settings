@@ -49,6 +49,11 @@
 #include    <eventdispatcher/broadcast_message.h>
 
 
+// snapcommunicator
+//
+#include    <snapcommunicator/snapcommunicator.h>
+
+
 // advgetopt
 //
 #include    <advgetopt/exception.h>
@@ -103,7 +108,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("127.0.0.1:4050")
+        , advgetopt::DefaultValue("")
         , advgetopt::Help("a colon separated list of paths to fluid-settings definitions.")
     ),
     advgetopt::define_option(
@@ -143,7 +148,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("127.0.0.1:4050")
+        , advgetopt::DefaultValue(sc::g_snapcommunicator_default_ip_port)
         , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
     ),
     advgetopt::end_options()
@@ -208,7 +213,7 @@ server::server(int argc, char * argv[])
 {
     snaplogger::add_logger_options(f_opts);
     f_opts.finish_parsing(argc, argv);
-    if(!snaplogger::process_logger_options(f_opts, "/etc/snapcommunicator/logger"))
+    if(!snaplogger::process_logger_options(f_opts, "/etc/fluid-settings/logger"))
     {
         // exit on any error
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
@@ -356,7 +361,6 @@ void server::stop(bool quitting)
 
         f_communicator->remove_connection(f_listener);
         f_listener.reset();
-
     }
 }
 

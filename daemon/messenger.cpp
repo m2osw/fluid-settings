@@ -64,38 +64,38 @@ namespace
 
 ed::dispatcher<messenger>::dispatcher_match::vector_t const g_dispatcher_messages =
 {
-    {
-          "FLUID_SETTINGS_CONNECTED"
-        , &messenger::msg_connected
-    },
-    {
-          "FLUID_SETTINGS_DELETE"
-        , &messenger::msg_delete
-    },
-    {
-          "FLUID_SETTINGS_FORGET"
-        , &messenger::msg_forget
-    },
-    {
-          "FLUID_SETTINGS_GET"
-        , &messenger::msg_get
-    },
-    {
-          "FLUID_SETTINGS_GOSSIP"
-        , &messenger::msg_gossip
-    },
-    {
-          "FLUID_SETTINGS_LIST"
-        , &messenger::msg_list
-    },
-    {
-          "FLUID_SETTINGS_LISTEN"
-        , &messenger::msg_listen
-    },
-    {
-          "FLUID_SETTINGS_PUT"
-        , &messenger::msg_put
-    },
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_CONNECTED")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_connected)
+    ),
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_DELETE")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_delete)
+    ),
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_FORGET")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_forget)
+    ),
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_GET")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_get)
+    ),
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_GOSSIP")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_gossip)
+    ),
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_LIST")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_list)
+    ),
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_LISTEN")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_listen)
+    ),
+    ed::dispatcher<messenger>::define_match(
+          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_PUT")
+        , ed::dispatcher<messenger>::Execute(&messenger::msg_put)
+    ),
 };
 
 } // no name namespace
@@ -116,6 +116,7 @@ messenger::messenger(server * s, addr::addr const & address)
 #ifdef _DEBUG
     f_dispatcher->set_trace();
 #endif
+    set_dispatcher(f_dispatcher);
 }
 
 

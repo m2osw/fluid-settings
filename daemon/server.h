@@ -42,7 +42,6 @@
 
 
 
-
 namespace fluid_settings_daemon
 {
 
