@@ -31,6 +31,7 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${ADVGETOPT_INCLUDE_DIRS}
+        ${EVENTDISPATCHER_INCLUDE_DIRS}
         ${LIBADDR_INCLUDE_DIRS}
         ${LIBEXCEPT_INCLUDE_DIRS}
         ${LIBUTF8_INCLUDE_DIRS}
@@ -40,6 +41,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     fluid-settings
     ${ADVGETOPT_LIBRARIES}
+    ${EVENTDISPATCHER_LIBRARIES}
     ${LIBADDR_LIBRARIES}
     ${LIBEXCEPT_LIBRARIES}
     ${LIBUTF8_LIBRARIES}

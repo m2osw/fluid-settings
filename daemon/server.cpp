@@ -49,9 +49,9 @@
 #include    <eventdispatcher/broadcast_message.h>
 
 
-// snapcommunicator
+// communicatord
 //
-#include    <snapcommunicator/snapcommunicator.h>
+#include    <communicatord/communicatord.h>
 
 
 // advgetopt
@@ -148,7 +148,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue(sc::g_snapcommunicator_default_ip_port)
+        , advgetopt::DefaultValue(communicatord::g_communicatord_default_ip_port)
         , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
     ),
     advgetopt::end_options()

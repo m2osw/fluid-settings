@@ -1,22 +1,20 @@
-# - Try to find EventDispatcher
+# - Find Fluid Settings
 #
-# Once done this will define
-#
-# EVENTDISPATCHER_FOUND        - System has EventDispatcher
-# EVENTDISPATCHER_INCLUDE_DIRS - The EventDispatcher include directories
-# EVENTDISPATCHER_LIBRARIES    - The libraries needed to use EventDispatcher (none)
-# EVENTDISPATCHER_DEFINITIONS  - Compiler switches required for using EventDispatcher (none)
+# FLUIDSETTINGS_FOUND        - System has FluidSettings
+# FLUIDSETTINGS_INCLUDE_DIRS - The FluidSettings include directories
+# FLUIDSETTINGS_LIBRARIES    - The libraries needed to use FluidSettings
+# FLUIDSETTINGS_DEFINITIONS  - Compiler switches required for using FluidSettings
 #
 # License:
 #
-# Copyright (c) 2013-2022  Made to Order Software Corp.  All Rights Reserved
+# Copyright (c) 2011-2022  Made to Order Software Corp.  All Rights Reserved
 #
-# https://snapwebsites.org/project/eventdispatcher
+# https://snapwebsites.org/project/fluid-settings
 # contact@m2osw.com
 #
-# This program is free software; you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -25,42 +23,40 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 find_path(
-    EVENTDISPATCHER_INCLUDE_DIR
-        eventdispatcher/version.h
+    FLUIDSETTINGS_INCLUDE_DIR
+        fluid-settings/version.h
 
     PATHS
-        $ENV{EVENTDISPATCHER_INCLUDE_DIR}
+        ENV FLUIDSETTINGS_INCLUDE_DIR
 )
 
 find_library(
-    EVENTDISPATCHER_LIBRARY
-        eventdispatcher
+    FLUIDSETTINGS_LIBRARY
+        fluid-settings
 
     PATHS
-        $ENV{EVENTDISPATCHER_LIBRARY}
+        ${FLUIDSETTINGS_LIBRARY_DIR}
+        ENV FLUIDSETTINGS_LIBRARY
 )
 
 mark_as_advanced(
-    EVENTDISPATCHER_INCLUDE_DIR
-    EVENTDISPATCHER_LIBRARY
+    FLUIDSETTINGS_INCLUDE_DIR
+    FLUIDSETTINGS_LIBRARY
 )
 
-set(EVENTDISPATCHER_INCLUDE_DIRS ${EVENTDISPATCHER_INCLUDE_DIR})
-set(EVENTDISPATCHER_LIBRARIES    ${EVENTDISPATCHER_LIBRARY})
+set(FLUIDSETTINGS_INCLUDE_DIRS ${FLUIDSETTINGS_INCLUDE_DIR})
+set(FLUIDSETTINGS_LIBRARIES    ${FLUIDSETTINGS_LIBRARY})
 
 include(FindPackageHandleStandardArgs)
 
-# handle the QUIETLY and REQUIRED arguments and set EVENTDISPATHCER_FOUND to
-# TRUE if all listed variables are TRUE
 find_package_handle_standard_args(
-    EventDispatcher
-    DEFAULT_MSG
-    EVENTDISPATCHER_INCLUDE_DIR
-    EVENTDISPATCHER_LIBRARY
+    FluidSettings
+    REQUIRED_VARS
+        FLUIDSETTINGS_INCLUDE_DIR
+        FLUIDSETTINGS_LIBRARY
 )
 
 # vim: ts=4 sw=4 et
