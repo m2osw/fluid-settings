@@ -148,7 +148,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue(communicatord::g_communicatord_default_ip_port)
+        , advgetopt::DefaultValue(communicatord::g_communicatord_default_ip_port.data())
         , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
     ),
     advgetopt::end_options()
