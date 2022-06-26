@@ -398,7 +398,7 @@ void messenger::connect_from_gossip(ed::message & msg, bool send_reply)
     if(send_reply)
     {
         reply.set_command("FLUID_SETTINGS_CONNECTED");
-        reply.add_parameter("my_ip", a.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT));
+        reply.add_parameter("my_ip", a.to_ipv4or6_string(addr::string_ip_t::STRING_IP_PORT));
 
         send_message(reply);
     }

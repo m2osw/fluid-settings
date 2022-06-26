@@ -574,7 +574,7 @@ void server::send_gossip()
 {
     ed::message gossip;
     gossip.set_command("FLUID_SETTINGS_GOSSIP");
-    gossip.add_parameter("my_ip", f_listener_address.to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT));
+    gossip.add_parameter("my_ip", f_listener_address.to_ipv4or6_string(addr::string_ip_t::STRING_IP_PORT));
     f_messenger->send_message(gossip);
 }
 
