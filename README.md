@@ -74,7 +74,7 @@ underscores, and digits only:
     [A-Za-z_][A-Za-z_0-9]
 
 To make it easier, the parser allows for dashes, but all dashes are
-replaced by underscores in the Fluid Settings.
+replaced to underscores in the Fluid Settings.
 
 #### The Priority
 
@@ -167,7 +167,7 @@ as required.
 The validator allows us to verify that the values are considered valid. If it
 doesn't match the type of data accepted by that validator, then the value is
 refused and an error is sent back to the sender. We use the advgetopt
-validator feature and extend that library as required by our needs.
+validator feature and extend that library as required as per our needs.
 
 **Note:** Since we use the advgetopt library, it is possible to change the
 syntax with names such as:
