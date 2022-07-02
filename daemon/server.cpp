@@ -227,7 +227,7 @@ int server::run()
 
     prepare_t initializers[] = {
         &server::prepare_settings,
-        &server::prepare_communicator,
+        &server::prepare_messenger,
         &server::prepare_listener,
         &server::prepare_save_timer,
         &server::prepare_gossip_timer,
@@ -258,7 +258,7 @@ bool server::prepare_settings()
 }
 
 
-bool server::prepare_communicator()
+bool server::prepare_messenger()
 {
     f_address = addr::string_to_addr(
                           f_opts.get_string("snapcommunicator")
