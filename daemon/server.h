@@ -92,7 +92,7 @@ public:
 
 private:
     bool                    prepare_settings();
-    bool                    prepare_messenger();
+    bool                    prepare_communicator();
     bool                    prepare_listener();
     bool                    prepare_save_timer();
     bool                    prepare_gossip_timer();
@@ -103,7 +103,7 @@ private:
     addr::addr              f_address = addr::addr();
     addr::addr              f_listener_address = addr::addr();
     ed::tcp_client_permanent_message_connection::pointer_t
-                            f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
+                            f_communicator = ed::tcp_client_permanent_message_connection::pointer_t();
     ed::tcp_server_connection::pointer_t
                             f_listener = ed::tcp_server_connection::pointer_t();
     std::int64_t            f_save_timeout = 5;
