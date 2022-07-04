@@ -40,6 +40,16 @@
 #include    <advgetopt/exception.h>
 
 
+// eventdispatcher
+//
+#include    <eventdispatcher/signal_handler.h>
+
+
+// libexcept
+//
+#include    <libexcept/file_inheritance.h>
+
+
 // snapdev
 //
 #include    <snapdev/pathinfo.h>
@@ -139,6 +149,9 @@ constexpr advgetopt::options_environment const g_options_environment =
 
 int main(int argc, char *argv[])
 {
+    ed::signal_handler::create_instance();
+    libexcept::verify_inherited_files();
+
     try
     {
         advgetopt::getopt opts(g_options_environment, argc, argv);

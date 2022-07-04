@@ -29,6 +29,11 @@
 #include    "fluid-settings/settings.h"
 
 
+// communicatord
+//
+#include    <communicatord/communicatord.h>
+
+
 // advgetopt
 //
 #include    "advgetopt/advgetopt.h"
@@ -47,6 +52,7 @@ namespace fluid_settings_daemon
 
 
 class server
+    : public communicatord::communicator
 {
 public:
     typedef std::shared_ptr<server> pointer_t;
@@ -92,7 +98,7 @@ public:
 
 private:
     bool                    prepare_settings();
-    bool                    prepare_messenger();
+    //bool                    prepare_messenger();
     bool                    prepare_listener();
     bool                    prepare_save_timer();
     bool                    prepare_gossip_timer();
@@ -102,8 +108,8 @@ private:
                             f_communicator = ed::communicator::pointer_t();
     addr::addr              f_address = addr::addr();
     addr::addr              f_listener_address = addr::addr();
-    ed::tcp_client_permanent_message_connection::pointer_t
-                            f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
+    //ed::tcp_client_permanent_message_connection::pointer_t
+    //                        f_messenger = ed::tcp_client_permanent_message_connection::pointer_t();
     ed::tcp_server_connection::pointer_t
                             f_listener = ed::tcp_server_connection::pointer_t();
     std::int64_t            f_save_timeout = 5;

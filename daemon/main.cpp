@@ -37,6 +37,11 @@
 #include    <advgetopt/exception.h>
 
 
+// libexcept
+//
+#include    <libexcept/file_inheritance.h>
+
+
 // snaplogger
 //
 #include    <snaplogger/message.h>
@@ -51,6 +56,7 @@
 int main(int argc, char * argv[])
 {
     ed::signal_handler::create_instance();
+    libexcept::verify_inherited_files();
 
     try
     {

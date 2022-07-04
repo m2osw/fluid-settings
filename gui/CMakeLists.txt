@@ -16,30 +16,57 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+find_package(Qt5Core              REQUIRED)
+find_package(Qt5Widgets           REQUIRED)
+find_package(VEEventDispatcherQt  REQUIRED)
+
 ##
 ## fluid settings graphical user interface
 ##
 project(fluidgui)
 
+qt5_wrap_ui(
+    USER_INTERFACE_HEADERS
+        fluid_settings.ui
+)
+
+qt5_add_resources(
+    RESOURCE_FILES
+        resources.qrc
+)
+
 add_executable(${PROJECT_NAME}
-    main.cpp
+    ${USER_INTERFACE_HEADERS}
+    ${RESOURCE_FILES}
+
     fluid_window.cpp
+    main.cpp
+    resources.qrc
 )
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
+        ${PROJECT_BINARY_DIR}
         ${ADVGETOPT_INCLUDE_DIRS}
+        ${EVENTDISPATCHER_INCLUDE_DIRS}
         ${LIBADDR_INCLUDE_DIRS}
         ${LIBEXCEPT_INCLUDE_DIRS}
+        ${Qt5Core_INCLUDE_DIRS}
+        ${Qt5Widgets_INCLUDE_DIRS}
         ${SNAPLOGGER_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}
     fluid-settings
     ${ADVGETOPT_LIBRARIES}
+    ${EVENTDISPATCHER_LIBRARIES}
+    ${EVENTDISPATCHER_QT_LIBRARIES}
     ${LIBADDR_LIBRARIES}
     ${LIBEXCEPT_LIBRARIES}
     ${SNAPLOGGER_LIBRARIES}
+
+    Qt5::Core
+    Qt5::Widgets
 )
 
 install(

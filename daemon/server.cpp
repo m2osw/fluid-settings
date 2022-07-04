@@ -208,16 +208,19 @@ constexpr advgetopt::options_environment const g_options_environment =
 
 
 server::server(int argc, char * argv[])
-    : f_opts(g_options_environment)
+    : communicator(f_opts)
+    , f_opts(g_options_environment)
     , f_communicator(ed::communicator::instance())
 {
     snaplogger::add_logger_options(f_opts);
+    add_communicator_options();
     f_opts.finish_parsing(argc, argv);
     if(!snaplogger::process_logger_options(f_opts, "/etc/fluid-settings/logger"))
     {
         // exit on any error
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
     }
+    process_communicator_options();
 }
 
 
@@ -227,7 +230,7 @@ int server::run()
 
     prepare_t initializers[] = {
         &server::prepare_settings,
-        &server::prepare_messenger,
+        //&server::prepare_messenger,
         &server::prepare_listener,
         &server::prepare_save_timer,
         &server::prepare_gossip_timer,
@@ -258,19 +261,19 @@ bool server::prepare_settings()
 }
 
 
-bool server::prepare_messenger()
-{
-    f_address = addr::string_to_addr(
-                          f_opts.get_string("snapcommunicator")
-                        , "127.0.0.1"
-                        , 4050
-                        , "tcp");
-
-    f_messenger = std::make_shared<messenger>(this, f_address);
-    f_communicator->add_connection(f_messenger);
-
-    return true;
-}
+//bool server::prepare_messenger()
+//{
+//    f_address = addr::string_to_addr(
+//                          f_opts.get_string("snapcommunicator")
+//                        , "127.0.0.1"
+//                        , 4050
+//                        , "tcp");
+//
+//    f_messenger = std::make_shared<messenger>(this, f_address);
+//    f_communicator->add_connection(f_messenger);
+//
+//    return true;
+//}
 
 
 bool server::prepare_listener()
@@ -335,21 +338,22 @@ void server::restart()
 
 void server::stop(bool quitting)
 {
-    if(f_messenger != nullptr)
-    {
-        if(quitting
-        || !f_messenger->is_connected())
-        {
-            f_communicator->remove_connection(f_messenger);
-            f_messenger.reset();
-        }
-        else
-        {
-            // in this case we can UNREGISTER from the snapcommunicator
-            //
-            f_messenger->unregister_service();
-        }
-    }
+    unregister_communicator(quitting);
+    //if(f_messenger != nullptr)
+    //{
+    //    if(quitting
+    //    || !f_messenger->is_connected())
+    //    {
+    //        f_communicator->remove_connection(f_messenger);
+    //        f_messenger.reset();
+    //    }
+    //    else
+    //    {
+    //        // in this case we can UNREGISTER from the snapcommunicator
+    //        //
+    //        f_messenger->unregister_service();
+    //    }
+    //}
 
     if(f_communicator != nullptr)
     {
@@ -511,7 +515,7 @@ void server::value_changed(std::string const & name)
         }
         new_value.set_server(s.f_server);
         new_value.set_service(s.f_service);
-        f_messenger->send_message(new_value);
+        send_message(new_value);
     }
 
     // if this change happened because another fluid-settings sent us
@@ -575,7 +579,7 @@ void server::send_gossip()
     ed::message gossip;
     gossip.set_command("FLUID_SETTINGS_GOSSIP");
     gossip.add_parameter("my_ip", f_listener_address.to_ipv4or6_string(addr::string_ip_t::STRING_IP_PORT));
-    f_messenger->send_message(gossip);
+    send_message(gossip);
 }
 
 
