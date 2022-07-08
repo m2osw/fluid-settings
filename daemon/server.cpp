@@ -108,7 +108,6 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("")
         , advgetopt::Help("a colon separated list of paths to fluid-settings definitions.")
     ),
     advgetopt::define_option(
@@ -171,6 +170,12 @@ advgetopt::group_description const g_group_descriptions[] =
 };
 
 
+constexpr char const * const g_configuration_files[] =
+{
+    "/etc/fluid-settings/fluid-settings.conf",
+    nullptr
+};
+
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -183,7 +188,7 @@ constexpr advgetopt::options_environment const g_options_environment =
     .f_environment_variable_name = "FLUID_SETTINGS_DAEMON",
     .f_environment_variable_intro = nullptr,
     .f_section_variables_name = nullptr,
-    .f_configuration_files = nullptr,
+    .f_configuration_files = g_configuration_files,
     .f_configuration_filename = nullptr,
     .f_configuration_directories = nullptr,
     .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
@@ -213,14 +218,14 @@ server::server(int argc, char * argv[])
     , f_communicator(ed::communicator::instance())
 {
     snaplogger::add_logger_options(f_opts);
-    add_communicator_options();
+    add_communicatord_options();
     f_opts.finish_parsing(argc, argv);
     if(!snaplogger::process_logger_options(f_opts, "/etc/fluid-settings/logger"))
     {
         // exit on any error
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
     }
-    process_communicator_options();
+    process_communicatord_options();
 }
 
 
@@ -252,8 +257,17 @@ int server::run()
 
 bool server::prepare_settings()
 {
-    std::string const paths(f_opts.get_string("definitions"));
-    f_settings.load_definitions(paths);
+    std::string paths;
+    if(f_opts.is_defined("definitions"))
+    {
+        paths = f_opts.get_string("definitions");
+    }
+    if(!f_settings.load_definitions(paths))
+    {
+        SNAP_LOG_NOTICE
+            << "no definitions found; is fluid-settings expecting definitions from other computers?"
+            << SNAP_LOG_SEND;
+    }
 
     f_settings.load(f_settings.get_default_settings_filename());
 

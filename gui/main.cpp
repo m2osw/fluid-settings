@@ -89,7 +89,7 @@ int main(int argc, char * argv[])
         app.setOrganizationDomain("https://www.snapwebsites.org");
         app.setOrganizationName("Snap! Websites");
 
-        FluidWindow win(argc, argv);
+        FluidWindow win(argc, argv, app);
         win.show();
         return win.run();
     }

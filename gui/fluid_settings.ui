@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>FluidWindow</class>
+ <widget class="QMainWindow" name="FluidWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -14,47 +14,65 @@
    <string>Fluid Settings</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="gridLayoutWidget">
+   <widget class="QSplitter" name="f_project_splitter">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>9</y>
-      <width>1771</width>
-      <height>881</height>
+      <x>10</x>
+      <y>10</y>
+      <width>1752</width>
+      <height>880</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="1" column="2">
-      <widget class="QPlainTextEdit" name="f_variable_value"/>
-     </item>
-     <item row="1" column="0">
-      <widget class="QListView" name="f_project_list"/>
-     </item>
-     <item row="1" column="1">
-      <widget class="QListWidget" name="f_variable_list"/>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLabel" name="label_variables">
-       <property name="text">
-        <string>Variables</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QLabel" name="label_value">
-       <property name="text">
-        <string>Value</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_projects">
-       <property name="text">
-        <string>Projects</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+    <widget class="QWidget" name="gridLayoutWidget">
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_projects">
+        <property name="text">
+         <string>Projects</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QListView" name="f_project_list"/>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QSplitter" name="f_variable_splitter">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <widget class="QWidget" name="gridLayoutWidget_2">
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_variables">
+         <property name="text">
+          <string>Variables</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QTableWidget" name="f_variable_list"/>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="gridLayoutWidget_3">
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_value">
+         <property name="text">
+          <string>Value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QPlainTextEdit" name="f_variable_value"/>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -99,6 +117,9 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+   <property name="autoRepeat">
+    <bool>false</bool>
    </property>
   </action>
   <action name="action_about">

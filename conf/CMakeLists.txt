@@ -25,7 +25,7 @@ install(
         fluid-settings.service
 
     DESTINATION
-        share/snapcommunicatord/services
+        share/communicatord/services
 )
 
 # vim: ts=4 sw=4 et

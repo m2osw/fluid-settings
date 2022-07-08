@@ -27,6 +27,11 @@
 #include    "ui_fluid_settings.h"
 
 
+// communicatord
+//
+#include    <communicatord/communicatord.h>
+
+
 // eventdispatcher
 //
 #include    <eventdispatcher/communicator.h>
@@ -35,20 +40,32 @@
 
 
 
+
 class FluidWindow
     : public QMainWindow
-    , private Ui::MainWindow
-    , public ed::logrotate_extension
+    , private Ui::FluidWindow
+    , public communicatord::communicator
 {
-public:
-                    FluidWindow(int argc, char * argv[]);
-    virtual         ~FluidWindow();
+private:
+    Q_OBJECT
 
-    int             run();
+public:
+                                    FluidWindow(int argc, char * argv[], QApplication & app);
+    virtual                         ~FluidWindow();
+
+    int                             run();
+
+protected:
+    virtual void                    closeEvent(QCloseEvent * event) override;
+
+private slots:
+    void                            on_action_quit_triggered();
 
 private:
-    void            setup_qt_connection();
+    void                            setup_qt_connection();
+    void                            on_about_to_quit();
 
+    QApplication &                  f_application;
     advgetopt::getopt               f_opts;
     ed::communicator::pointer_t     f_communicator = ed::communicator::pointer_t();
     ed::connection::pointer_t       f_qt_connection = ed::connection::pointer_t();

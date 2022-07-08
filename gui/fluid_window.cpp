@@ -42,6 +42,11 @@
 #include    <snaplogger/options.h>
 
 
+// Qt
+//
+#include    <QSettings>
+
+
 // boost
 //
 #include    <boost/preprocessor/stringize.hpp>
@@ -120,7 +125,7 @@ constexpr advgetopt::options_environment const g_options_environment =
                    " by Made to Order Software Corporation -- All Rights Reserved",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
-    .f_groups = nullptr,
+    .f_groups = g_group_descriptions,
 };
 #pragma GCC diagnostic pop
 
@@ -137,34 +142,51 @@ constexpr advgetopt::options_environment const g_options_environment =
  * This function initializes the main window of the GUI application managing
  * the Fluis Settings of a network.
  */
-FluidWindow::FluidWindow(int argc, char * argv[])
+FluidWindow::FluidWindow(int argc, char * argv[], QApplication & app)
     : QMainWindow()
-    , logrotate_extension(f_opts, "127.0.0.1", 4052)
+    , communicator(f_opts)
+    , f_application(app) // Note: &f_application == qApp
     , f_opts(g_options_environment)
     , f_communicator(ed::communicator::instance())
 {
     snaplogger::add_logger_options(f_opts);
-    add_logrotate_options();
+    add_communicatord_options();
     f_opts.finish_parsing(argc, argv);
-    if(!snaplogger::process_logger_options(f_opts, "/etc/ve/logger"))
+    if(!snaplogger::process_logger_options(f_opts, "/etc/fluid-settings/logger"))
     {
         throw advgetopt::getopt_exit("invalid logger options", 1);
     }
-    process_logrotate_options();
+    process_communicatord_options();
 
     setup_qt_connection();
 
     setWindowIcon(QIcon(":/icons/logo.png"));
 
     setupUi(this);
+
+    // TODO: We do not receive this event...
+    //
+    //       Note that I tried to NOT remove the f_qt_connection in the close
+    //       event and it did not help, plus I think it should happen before
+    //       because the about to quit is expected to be used to prevent the
+    //       quit if something warrants it (i.e. something not saved yet)
+    //
+    //connect(
+    //      &f_application
+    //    , &QApplication::aboutToQuit
+    //    , this
+    //    , &FluidWindow::on_about_to_quit);
+
+    QSettings const settings(this);
+    restoreGeometry(settings.value("geometry", saveGeometry()).toByteArray());
+    restoreState(settings.value("state", saveState()).toByteArray());
+    f_project_splitter->restoreState(settings.value("projectSplitterState", f_project_splitter->saveState()).toByteArray());
+    f_variable_splitter->restoreState(settings.value("variableSplitterState", f_variable_splitter->saveState()).toByteArray());
 }
 
 
 FluidWindow::~FluidWindow()
 {
-    // TODO: move to Quit() function
-    //
-    disconnect_logrotate_messenger();
 }
 
 
@@ -185,6 +207,41 @@ int FluidWindow::run()
     return 0;
 }
 
+
+void FluidWindow::on_about_to_quit()
+{
+    QSettings settings(this);
+    settings.setValue("geometry", saveGeometry());
+    settings.setValue("state", saveState());
+    settings.setValue("projectSplitterState", f_project_splitter->saveState());
+    settings.setValue("variableSplitterState", f_variable_splitter->saveState());
+}
+
+
+void FluidWindow::on_action_quit_triggered()
+{
+    close();
+}
+
+
+void FluidWindow::closeEvent(QCloseEvent * event)
+{
+    f_communicator->debug_connections();
+    f_communicator->set_show_connections(true);
+
+    // TODO: until the on_about_to_quit() works, we call this explicitly
+    //
+    on_about_to_quit();
+
+    QMainWindow::closeEvent(event);
+
+    f_communicator->remove_connection(f_qt_connection);
+    f_qt_connection.reset();
+
+    unregister_communicator(false);
+
+    f_communicator->log_connections();
+}
 
 
 

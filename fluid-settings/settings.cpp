@@ -159,12 +159,11 @@ bool settings::load_definitions(std::string paths)
 
     advgetopt::string_list_t list;
     advgetopt::split_string(paths, list, { ":" });
-    bool result(true);
     for(auto const & p : list)
     {
-        result = load_definition_file(p) && result;
+        load_definition_file(p);
     }
-    return result;
+    return !f_opts->get_options().empty();
 }
 
 
@@ -183,7 +182,6 @@ bool settings::load_definition_file(std::string const & path)
         return false;
     }
 
-    bool const ignore_duplicates(!f_opts->get_options().empty());
     for(auto const & f : files)
     {
         try
@@ -192,12 +190,12 @@ bool settings::load_definition_file(std::string const & path)
                       f
                     , 2
                     , std::numeric_limits<int>::max()
-                    , ignore_duplicates);
+                    , true);
         }
         catch(advgetopt::getopt_logic_error const & e)
         {
             SNAP_LOG_SEVERE
-                << "the fluid settings option parser found an invalid parameter: "
+                << "the fluid-settings option parser found an invalid parameter: "
                 << e.what()
                 << SNAP_LOG_SEND;
         }
