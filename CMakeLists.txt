@@ -43,8 +43,6 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-set(CMAKE_AUTOMOC TRUE)
-
 add_subdirectory(fluid-settings)
 add_subdirectory(daemon)
 add_subdirectory(cli)

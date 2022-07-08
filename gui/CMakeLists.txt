@@ -16,9 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# TODO: make those non-required and if not available, skip the entire thing
 find_package(Qt5Core              REQUIRED)
 find_package(Qt5Widgets           REQUIRED)
 find_package(EventDispatcherQt    REQUIRED)
+
+set(CMAKE_AUTOMOC TRUE)
 
 ##
 ## fluid settings graphical user interface
