@@ -25,7 +25,7 @@ install(
         fluid-settings.service
 
     DESTINATION
-        share/communicatord/services
+        ${COMMUNICATORD_SERVICES_INSTALL_DIR}
 )
 
 # vim: ts=4 sw=4 et

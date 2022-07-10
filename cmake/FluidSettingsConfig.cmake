@@ -59,4 +59,6 @@ find_package_handle_standard_args(
         FLUIDSETTINGS_LIBRARY
 )
 
+set(FLUIDSETTINGS_DEFINITIONS_INSTALL_DIR share/fluid-settings/definitions)
+
 # vim: ts=4 sw=4 et
