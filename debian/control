@@ -48,7 +48,7 @@ Description: Development package for the fluid-settings service.
 Package: fluid-settings
 Section: libs
 Architecture: any
-Depends: snapcommunicator, ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: The fluid-settings library.
  This library provides all sorts of functionality to the fluid-settings
  service and developer systems.
