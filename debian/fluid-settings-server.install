@@ -1,4 +1,5 @@
-usr/sbin/fluidsettings
-conf/fluid-settings.conf                etc/eventdispatcher/
-conf/fluid-settings.service             usr/share/snapcommunicator/services/
-conf/README.md                          etc/eventdispatcher/eventdispatcher.d/
+usr/sbin
+usr/share/communicatord
+
+conf/fluid-settings.conf                etc/fluid-settings/
+conf/README.md                          etc/fluid-settings/fluid-settings.d/

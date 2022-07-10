@@ -202,17 +202,18 @@ int main(int argc, char *argv[])
             //
             if(access(source.c_str(), R_OK) != 0)
             {
-                source += ".ini";
-            }
-            if(access(source.c_str(), R_OK) != 0)
-            {
-                std::cerr
-                    << opts.get_program_name()
-                    << ": cannot access \""
-                    << source
-                    << "\".\n";
-                exit_code = 1;
-                continue;
+                std::string const s2(source + ".ini");
+                if(access(s2.c_str(), R_OK) != 0)
+                {
+                    std::cerr
+                        << opts.get_program_name()
+                        << ": cannot access \""
+                        << source
+                        << "\".\n";
+                    exit_code = 1;
+                    continue;
+                }
+                source = s2;
             }
 
             if(verbose)
