@@ -79,5 +79,5 @@ private:
 
 
 
-} // namespace scd
+} // namespace fluid_settings_daemon
 // vim: ts=4 sw=4 et

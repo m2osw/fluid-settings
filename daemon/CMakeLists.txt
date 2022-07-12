@@ -19,7 +19,7 @@
 ##
 ## fluidsettingsd daemon
 ##
-project(fluidsettingsd)
+project(fluidsettings-daemon)
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
@@ -40,6 +40,10 @@ add_executable(${PROJECT_NAME}
     #settings.cpp
     #tcp_listener.cpp
     #udp_listener.cpp
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME fluid-settings
 )
 
 target_include_directories(${PROJECT_NAME}

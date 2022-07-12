@@ -159,9 +159,19 @@ bool settings::load_definitions(std::string paths)
 
     advgetopt::string_list_t list;
     advgetopt::split_string(paths, list, { ":" });
+    bool found(false);
     for(auto const & p : list)
     {
-        load_definition_file(p);
+        if(load_definition_file(p))
+        {
+            found = true;
+        }
+    }
+    if(!found)
+    {
+        SNAP_LOG_WARNING
+            << "no fluid-settings definition files found anywhere; fluid-settings will be dormant."
+            << SNAP_LOG_SEND;
     }
     return !f_opts->get_options().empty();
 }
@@ -172,7 +182,7 @@ bool settings::load_definition_file(std::string const & path)
     snapdev::glob_to_list<std::list<std::string>> files;
     if(!files.read_path<>(path + '/' + g_definitions_pattern))
     {
-        SNAP_LOG_ERROR
+        SNAP_LOG_WARNING
             << "no fluid-settings definition files found in \""
             << path
             << "\" (with pattern \""
@@ -184,6 +194,12 @@ bool settings::load_definition_file(std::string const & path)
 
     for(auto const & f : files)
     {
+        SNAP_LOG_CONFIGURATION
+            << "loading fluid-settings definitions from \""
+            << f
+            << "\"."
+            << SNAP_LOG_SEND;
+
         try
         {
             f_opts->parse_options_from_file(
