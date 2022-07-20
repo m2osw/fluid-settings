@@ -2,4 +2,3 @@ usr/sbin
 usr/share/communicatord
 
 conf/fluid-settings.conf                etc/fluid-settings/
-conf/README.md                          etc/fluid-settings/fluid-settings.d/

@@ -115,7 +115,8 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("60")
+        , advgetopt::DefaultValue("60s")
+        , advgetopt::Validator("duration")
         , advgetopt::Help("number of seconds to wait before sending another FLUID_SETTINGS_GOSSIP message.")
     ),
     advgetopt::define_option(
@@ -213,19 +214,18 @@ constexpr advgetopt::options_environment const g_options_environment =
 
 
 server::server(int argc, char * argv[])
-    : communicator(f_opts)
-    , f_opts(g_options_environment)
+    : f_opts(g_options_environment)
     , f_communicator(ed::communicator::instance())
+    , f_messenger(std::make_shared<messenger>(this, f_opts))
 {
     snaplogger::add_logger_options(f_opts);
-    add_communicatord_options();
     f_opts.finish_parsing(argc, argv);
     if(!snaplogger::process_logger_options(f_opts, "/etc/fluid-settings/logger"))
     {
         // exit on any error
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
     }
-    process_communicatord_options();
+    f_messenger->process_communicatord_options();
 }
 
 
@@ -235,7 +235,6 @@ int server::run()
 
     prepare_t initializers[] = {
         &server::prepare_settings,
-        //&server::prepare_messenger,
         &server::prepare_listener,
         &server::prepare_save_timer,
         &server::prepare_gossip_timer,
@@ -273,21 +272,6 @@ bool server::prepare_settings()
 
     return true;
 }
-
-
-//bool server::prepare_messenger()
-//{
-//    f_address = addr::string_to_addr(
-//                          f_opts.get_string("snapcommunicator")
-//                        , "127.0.0.1"
-//                        , 4050
-//                        , "tcp");
-//
-//    f_messenger = std::make_shared<messenger>(this, f_address);
-//    f_communicator->add_connection(f_messenger);
-//
-//    return true;
-//}
 
 
 bool server::prepare_listener()
@@ -352,22 +336,10 @@ void server::restart()
 
 void server::stop(bool quitting)
 {
-    unregister_communicator(quitting);
-    //if(f_messenger != nullptr)
-    //{
-    //    if(quitting
-    //    || !f_messenger->is_connected())
-    //    {
-    //        f_communicator->remove_connection(f_messenger);
-    //        f_messenger.reset();
-    //    }
-    //    else
-    //    {
-    //        // in this case we can UNREGISTER from the snapcommunicator
-    //        //
-    //        f_messenger->unregister_service();
-    //    }
-    //}
+    if(f_messenger != nullptr)
+    {
+        f_messenger->unregister_communicator(quitting);
+    }
 
     if(f_communicator != nullptr)
     {
@@ -463,7 +435,7 @@ std::string server::list_of_options()
 }
 
 
-bool server::get_value(
+fluid_settings::get_result_t server::get_value(
       std::string const & name
     , std::string & value
     , fluid_settings::priority_t priority
@@ -505,6 +477,11 @@ bool server::reset_setting(
 
 void server::value_changed(std::string const & name)
 {
+    if(f_messenger == nullptr)
+    {
+        return;
+    }
+
     if(!f_save_timer->is_enabled())
     {
         f_save_timer->set_enable(true);
@@ -514,22 +491,26 @@ void server::value_changed(std::string const & name)
     // tell the listeners about the new value
     //
     std::string value;
-    bool const result(f_settings.get_value(name, value));
+    fluid_settings::get_result_t const result(f_settings.get_value(name, value));
     for(auto const & s : f_listeners[name])
     {
         ed::message new_value;
         new_value.set_command("NEW_VALUE");
-        if(result)
+        switch(result)
         {
+        case fluid_settings::get_result_t::GET_RESULT_SUCCESS:
+        case fluid_settings::get_result_t::GET_RESULT_DEFAULT:
             new_value.add_parameter("value", value);
-        }
-        else
-        {
+            break;
+
+        default:
             new_value.add_parameter("message", "value undefined");
+            break;
+
         }
         new_value.set_server(s.f_server);
         new_value.set_service(s.f_service);
-        send_message(new_value);
+        f_messenger->send_message(new_value);
     }
 
     // if this change happened because another fluid-settings sent us
@@ -590,10 +571,17 @@ addr::addr const & server::get_listener_address() const
 
 void server::send_gossip()
 {
+    if(f_messenger == nullptr)
+    {
+        return;
+    }
+
     ed::message gossip;
     gossip.set_command("FLUID_SETTINGS_GOSSIP");
+    gossip.set_server("*");
+    gossip.set_service("fluid_settings");
     gossip.add_parameter("my_ip", f_listener_address.to_ipv4or6_string(addr::string_ip_t::STRING_IP_PORT));
-    send_message(gossip);
+    f_messenger->send_message(gossip);
 }
 
 

@@ -46,9 +46,17 @@ namespace fluid_settings_cli
 
 ed::dispatcher<client>::dispatcher_match::vector_t const g_dispatcher_messages =
 {
+    { // reply when the default value is being returned
+          "FLUID_SETTINGS_DEFAULT_VALUE"
+        , &client::msg_default_value
+    },
     { // reply to DELETE
           "FLUID_SETTINGS_DELETED"
         , &client::msg_deleted
+    },
+    { // reply when an error was detected (i.e. wrong value name)
+          "FLUID_SETTINGS_ERROR"
+        , &client::msg_error
     },
     { // reply on failure
           "FLUID_SETTINGS_FAILED"
@@ -74,7 +82,12 @@ ed::dispatcher<client>::dispatcher_match::vector_t const g_dispatcher_messages =
 
 
 client::client(cli * parent, addr::addr const & address)
-    : tcp_client_permanent_message_connection(address)
+    : tcp_client_permanent_message_connection(
+              address
+            , ed::mode_t::MODE_PLAIN
+            , ed::DEFAULT_PAUSE_BEFORE_RECONNECTING
+            , true
+            , "fluid_settings_cli")
     , f_parent(parent)
     , f_dispatcher(std::make_shared<ed::dispatcher<client>>(this, g_dispatcher_messages))
 {
@@ -82,6 +95,7 @@ client::client(cli * parent, addr::addr const & address)
 #ifdef _DEBUG
     f_dispatcher->set_trace();
 #endif
+    set_dispatcher(f_dispatcher);
 }
 
 
@@ -90,11 +104,55 @@ client::~client()
 }
 
 
+void client::process_connected()
+{
+    tcp_client_permanent_message_connection::process_connected();
+    register_service();
+}
+
+
+void client::msg_service_unavailable(ed::message & msg)
+{
+    snapdev::NOT_USED(msg);
+
+    SNAP_LOG_ERROR
+        << "fluid_settings service is not currently available."
+        << SNAP_LOG_SEND;
+
+    f_parent->close();
+}
+
+
+void client::ready(ed::message & msg)
+{
+    snapdev::NOT_USED(msg);
+
+    f_parent->ready();
+}
+
+
+void client::msg_default_value(ed::message & msg)
+{
+    f_parent->value(msg, true);
+}
+
+
 void client::msg_deleted(ed::message & msg)
 {
     snapdev::NOT_USED(msg);
 
     f_parent->deleted();
+}
+
+
+void client::msg_error(ed::message & msg)
+{
+    SNAP_LOG_ERROR
+        << "an error occurred: "
+        << msg.to_string()
+        << SNAP_LOG_SEND;
+
+    f_parent->close();
 }
 
 
@@ -120,7 +178,7 @@ void client::msg_updated(ed::message & msg)
 
 void client::msg_value(ed::message & msg)
 {
-    f_parent->value(msg);
+    f_parent->value(msg, false);
 }
 
 

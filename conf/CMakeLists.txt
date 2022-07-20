@@ -22,7 +22,7 @@
 ##
 install(
     FILES
-        fluid-settings.service
+        fluid_settings.service
 
     DESTINATION
         ${COMMUNICATORD_SERVICES_INSTALL_DIR}

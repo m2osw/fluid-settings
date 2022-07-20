@@ -51,6 +51,13 @@
 #include    <eventdispatcher/dispatcher.h>
 
 
+// communicatord
+//
+#include    <communicatord/communicatord.h>
+
+
+
+
 
 namespace fluid_settings_daemon
 {
@@ -61,20 +68,21 @@ class server;
 
 
 class messenger
-    : public ed::tcp_client_permanent_message_connection
+    //: public ed::tcp_client_permanent_message_connection
+    : public communicatord::communicator
 {
 public:
     typedef std::shared_ptr<messenger>      pointer_t;
 
-                        messenger(server * s, addr::addr const & address);
+                        messenger(
+                              server * s
+                            , advgetopt::getopt & opts);
                         messenger(messenger const &) = delete;
     virtual             ~messenger() override;
     messenger &         operator = (messenger const &) = delete;
 
-    // tcp_client_permanent_message_connection implementation
-    virtual void        process_connected() override;
-
     // connection_with_send_message implementation
+    //
     virtual void        ready(ed::message & msg) override;
     virtual void        restart(ed::message & msg) override;
     virtual void        stop(bool quitting) override;

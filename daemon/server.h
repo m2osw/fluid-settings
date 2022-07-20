@@ -26,17 +26,12 @@
 
 // fluid-settings
 //
-#include    "fluid-settings/settings.h"
-
-
-// communicatord
-//
-#include    <communicatord/communicatord.h>
+#include    <fluid-settings/settings.h>
 
 
 // advgetopt
 //
-#include    "advgetopt/advgetopt.h"
+#include    <advgetopt/advgetopt.h>
 
 
 // eventdispatcher
@@ -51,8 +46,10 @@ namespace fluid_settings_daemon
 {
 
 
+class messenger;
+
+
 class server
-    : public communicatord::communicator
 {
 public:
     typedef std::shared_ptr<server> pointer_t;
@@ -72,7 +69,8 @@ public:
                                 , std::string const & service_name
                                 , std::string const & names);
     std::string             list_of_options();
-    bool                    get_value(
+    fluid_settings::get_result_t
+                            get_value(
                                   std::string const & name
                                 , std::string & value
                                 , fluid_settings::priority_t priority
@@ -105,6 +103,8 @@ private:
     advgetopt::getopt       f_opts;
     ed::communicator::pointer_t
                             f_communicator = ed::communicator::pointer_t();
+    std::shared_ptr<messenger>
+                            f_messenger = std::shared_ptr<messenger>();
     addr::addr              f_address = addr::addr();
     addr::addr              f_listener_address = addr::addr();
     ed::tcp_server_connection::pointer_t

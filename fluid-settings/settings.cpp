@@ -290,7 +290,7 @@ std::string settings::list_of_options()
  *
  * \return true if a value was found, false otherwise.
  */
-bool settings::get_value(
+get_result_t settings::get_value(
       std::string const & name
     , std::string & result
     , priority_t priority
@@ -299,12 +299,17 @@ bool settings::get_value(
     advgetopt::option_info::pointer_t o(f_opts->get_option(name));
     if(o == nullptr)
     {
-        return false;
+        return get_result_t::GET_RESULT_UNKNOWN;
     }
 
     if(!o->is_defined())
     {
-        return false;
+        if(o->has_default())
+        {
+            result = o->get_default();
+            return get_result_t::GET_RESULT_DEFAULT;
+        }
+        return get_result_t::GET_RESULT_NOT_SET;
     }
 
     // the value is defined so we can retrieve it, "unfortunately" the
@@ -321,11 +326,18 @@ bool settings::get_value(
     {
         // weird, if o->is_defined() is true then we should have found this!?
         //
-        return false;
+        return get_result_t::GET_RESULT_ERROR;
     }
     if(it->second.empty())
     {
-        return false;
+        // array of value is empty
+        //
+        if(o->has_default())
+        {
+            result = o->get_default();
+            return get_result_t::GET_RESULT_DEFAULT;
+        }
+        return get_result_t::GET_RESULT_NOT_SET;
     }
 
     if(all)
@@ -358,12 +370,12 @@ bool settings::get_value(
         auto vp(it->second.find(v));
         if(vp == it->second.end())
         {
-            return false;
+            return get_result_t::GET_RESULT_PRIORITY_NOT_FOUND;
         }
         result = vp->get_value();
     }
 
-    return true;
+    return get_result_t::GET_RESULT_SUCCESS;
 }
 
 

@@ -102,13 +102,8 @@ ed::dispatcher<messenger>::dispatcher_match::vector_t const g_dispatcher_message
 
 
 
-messenger::messenger(server * s, addr::addr const & address)
-    : tcp_client_permanent_message_connection(
-              address
-            , ed::mode_t::MODE_PLAIN
-            , ed::DEFAULT_PAUSE_BEFORE_RECONNECTING
-            , true
-            , "fluid_settings")
+messenger::messenger(server * s, advgetopt::getopt & opts)
+    : communicator(opts, "fluid_settings")
     , f_server(s)
     , f_dispatcher(std::make_shared<ed::dispatcher<messenger>>(this, g_dispatcher_messages))
 {
@@ -122,13 +117,6 @@ messenger::messenger(server * s, addr::addr const & address)
 
 messenger::~messenger()
 {
-}
-
-
-void messenger::process_connected()
-{
-    tcp_client_permanent_message_connection::process_connected();
-    register_service();
 }
 
 
@@ -325,9 +313,13 @@ void messenger::msg_get(ed::message & msg)
     }
 
     std::string const name(msg.get_parameter("name"));
+    reply.add_parameter("name", name);
+
     std::string value;
-    if(f_server->get_value(name, value, priority, all))
+    fluid_settings::get_result_t const r(f_server->get_value(name, value, priority, all));
+    switch(r)
     {
+    case fluid_settings::get_result_t::GET_RESULT_SUCCESS:
         if(all)
         {
             // since commas need special handling in this case, we use
@@ -341,16 +333,37 @@ void messenger::msg_get(ed::message & msg)
             reply.set_command("FLUID_SETTINGS_VALUE");
             reply.add_parameter("value", value);
         }
-        send_message(reply);
-    }
-    else
-    {
+        break;
+
+    case fluid_settings::get_result_t::GET_RESULT_DEFAULT:
+        reply.set_command("FLUID_SETTINGS_DEFAULT_VALUE");
+        reply.add_parameter("value", value);
+        break;
+
+    case fluid_settings::get_result_t::GET_RESULT_NOT_SET:
+        reply.set_command("FLUID_SETTINGS_NOT_SET");
+        reply.add_parameter("error", "this setting has current no values set");
+        break;
+
+    case fluid_settings::get_result_t::GET_RESULT_PRIORITY_NOT_FOUND:
+        reply.set_command("FLUID_SETTINGS_NOT_SET");
+        reply.add_parameter("error", "no value at the requested priority");
+        break;
+
+    case fluid_settings::get_result_t::GET_RESULT_ERROR:
+        reply.set_command("FLUID_SETTINGS_ERROR");
+        reply.add_parameter("error", "found a parameter named \"" + name + "\" but no corresponding value (logic error)");
+        reply.add_parameter("error_command", "FLUID_SETTINGS_GET");
+        break;
+
+    case fluid_settings::get_result_t::GET_RESULT_UNKNOWN:
         reply.set_command("FLUID_SETTINGS_ERROR");
         reply.add_parameter("error", "no parameter named \"" + name + "\"");
         reply.add_parameter("error_command", "FLUID_SETTINGS_GET");
-        reply.add_parameter("name", name);
-        send_message(reply);
+        break;
+
     }
+    send_message(reply);
 }
 
 

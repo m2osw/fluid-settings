@@ -60,11 +60,13 @@ public:
                         cli(int argc, char * argv[]);
 
     int                 run();
+    void                ready();
     void                deleted();
     void                list(ed::message & msg);
     void                updated();
-    void                value(ed::message & msg);
+    void                value(ed::message & msg, bool is_default);
     void                value_updated(ed::message & msg);
+    void                close();
     void                timeout();
     void                failed(ed::message & msg);
 

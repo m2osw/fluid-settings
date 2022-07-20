@@ -43,6 +43,17 @@ namespace fluid_settings
 {
 
 
+enum class get_result_t
+{
+    GET_RESULT_ERROR,               // some error happened (other than value undefined)
+    GET_RESULT_UNKNOWN,             // unknown value (name not found in lists)
+    GET_RESULT_NOT_SET,             // the get "failed" because the value is not set
+    GET_RESULT_PRIORITY_NOT_FOUND,  // some values are set, but not at the requested priority
+    GET_RESULT_DEFAULT,             // default value is being returned
+    GET_RESULT_SUCCESS,             // the value(s) is(are) being returned
+};
+
+
 class settings
 {
 public:
@@ -52,7 +63,7 @@ public:
     bool                    load_definitions(
                                   std::string paths = std::string());
     std::string             list_of_options();
-    bool                    get_value(
+    get_result_t            get_value(
                                   std::string const & name
                                 , std::string & value
                                 , priority_t priority = HIGHEST_PRIORITY

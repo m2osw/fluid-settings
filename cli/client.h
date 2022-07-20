@@ -43,6 +43,7 @@
 
 // eventdispatcher
 //
+#include    <eventdispatcher/connection_with_send_message.h>
 #include    <eventdispatcher/dispatcher.h>
 
 
@@ -61,7 +62,18 @@ public:
     virtual             ~client() override;
     client &            operator = (client const &) = delete;
 
+    // tcp_client_permanent_message_connection implementation
+    //
+    virtual void        process_connected() override;
+
+    // connection_with_send_message implementation
+    //
+    virtual void        ready(ed::message & msg) override;
+    virtual void        msg_service_unavailable(ed::message & msg) override;
+
+    void                msg_default_value(ed::message & msg);
     void                msg_deleted(ed::message & msg);
+    void                msg_error(ed::message & msg);
     void                msg_failed(ed::message & msg);
     void                msg_options(ed::message & msg);
     void                msg_updated(ed::message & msg);

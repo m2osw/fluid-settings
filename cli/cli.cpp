@@ -55,6 +55,7 @@
 // advgetopt
 //
 #include    <advgetopt/exception.h>
+#include    <advgetopt/validator_duration.h>
 
 
 // snaplogger
@@ -149,6 +150,23 @@ advgetopt::option const g_options[] =
               advgetopt::GETOPT_FLAG_GROUP_COMMANDS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::Help("set a value.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("timeout")
+        , advgetopt::ShortName('t')
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_COMMANDS
+            , advgetopt::GETOPT_FLAG_REQUIRED>())
+        , advgetopt::DefaultValue("10")
+        , advgetopt::Validator("duration")
+        , advgetopt::Help("time given for a message to be sent and a reply received.")
+    ),
+    advgetopt::define_option(
+          advgetopt::Name("verbose")
+        , advgetopt::ShortName('v')
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_COMMANDS>())
+        , advgetopt::Help("show additional information about the value, as available.")
     ),
     advgetopt::define_option(
           advgetopt::Name("watch")
@@ -276,21 +294,38 @@ int cli::run()
     f_client = std::make_shared<client>(this, f_address);
     f_communicator->add_connection(f_client);
 
-    // TODO: add command line option for the timeout
-    f_timer = std::make_shared<cli_timer>(this, 10'000'000LL);
+    std::string const timeout_str(f_opts.get_string("timeout"));
+    double duration(0.0);
+    advgetopt::validator_duration::convert_string(
+                  timeout_str
+                , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                , duration);
+    f_timer = std::make_shared<cli_timer>(this, duration * 1'000'000LL);
     f_communicator->add_connection(f_timer);
 
+    f_communicator->run();
+
+    return f_success ? 0 : 1;
+}
+
+
+void cli::ready()
+{
     ed::message msg;
     if(f_opts.is_defined("delete"))
     {
         msg.set_command("FLUID_SETTINGS_DELETE");
+        msg.set_service("fluid_settings");
         msg.add_parameter("name", f_opts.get_string("delete"));
+        msg.add_parameter("cache", "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("get"))
     {
         msg.set_command("FLUID_SETTINGS_GET");
+        msg.set_service("fluid_settings");
         msg.add_parameter("name", f_opts.get_string("get"));
+        msg.add_parameter("cache", "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("list-all")
@@ -298,27 +333,36 @@ int cli::run()
          || f_opts.is_defined("list-services"))
     {
         msg.set_command("FLUID_SETTINGS_LIST");
+        msg.set_service("fluid_settings");
+        msg.add_parameter("name", f_opts.get_string("get"));
+        msg.add_parameter("cache", "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("set"))
     {
         msg.set_command("FLUID_SETTINGS_PUT");
+        msg.set_service("fluid_settings");
         msg.add_parameter("name", f_opts.get_string("set"));
         msg.add_parameter("value", f_opts.get_string("set", 1));
+        msg.add_parameter("cache", "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("watch"))
     {
         msg.set_command("FLUID_SETTINGS_LISTEN");
+        msg.set_service("fluid_settings");
         msg.add_parameter("names", f_opts.get_string("watch"));
+        msg.add_parameter("cache", "no;reply");
         f_client->send_message(msg);
     }
-
-std::cerr << "==== START RUNNING ====\n";
-    f_communicator->run();
-std::cerr << "==== END RUNNING ====\n";
-
-    return f_success ? 0 : 1;
+    else
+    {
+        // TBD: should this be an error?
+        //
+        SNAP_LOG_WARNING
+            << "no command found."
+            << SNAP_LOG_SEND;
+    }
 }
 
 
@@ -326,8 +370,7 @@ void cli::deleted()
 {
     f_success = true;
 
-    f_communicator->remove_connection(f_client);
-    f_communicator->remove_connection(f_timer);
+    close();
 }
 
 
@@ -348,8 +391,7 @@ void cli::failed(ed::message & msg)
             << '\n';
     }
 
-    f_communicator->remove_connection(f_client);
-    f_communicator->remove_connection(f_timer);
+    close();
 }
 
 
@@ -428,23 +470,26 @@ void cli::list(ed::message & msg)
             << SNAP_LOG_SEND;
     }
 
-    f_communicator->remove_connection(f_client);
-    f_communicator->remove_connection(f_timer);
+    close();
 }
 
 
 void cli::updated()
 {
     f_success = true;
-    f_communicator->remove_connection(f_client);
-    f_communicator->remove_connection(f_timer);
+    close();
 }
 
 
-void cli::value(ed::message & msg)
+void cli::value(ed::message & msg, bool is_default)
 {
     if(msg.has_parameter("value"))
     {
+        if(f_opts.is_defined("verbose")
+        && is_default)
+        {
+            std::cout << "the value is not currently set, here is the default value:\n";
+        }
         f_success = print_value(msg.get_parameter("value"));
     }
     else
@@ -454,8 +499,7 @@ void cli::value(ed::message & msg)
             << SNAP_LOG_SEND;
     }
 
-    f_communicator->remove_connection(f_client);
-    f_communicator->remove_connection(f_timer);
+    close();
 }
 
 
@@ -476,14 +520,20 @@ void cli::value_updated(ed::message & msg)
 }
 
 
+void cli::close()
+{
+    f_communicator->remove_connection(f_client);
+    f_communicator->remove_connection(f_timer);
+}
+
+
 void cli::timeout()
 {
     SNAP_LOG_ERROR
         << "we did not receive a reply to our query in time."
         << SNAP_LOG_SEND;
 
-    f_communicator->remove_connection(f_client);
-    f_communicator->remove_connection(f_timer);
+    close();
 }
 
 

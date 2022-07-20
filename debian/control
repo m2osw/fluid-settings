@@ -64,4 +64,14 @@ Description: The actual fluid-settings service.
  a way to access configuration parameters in one place over the network
  instead of having to configure each instance of these other services.
 
+Package: fluid-settings-gui
+Section: utils
+Architecture: any
+Suggests: fluid-settings-doc
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The fluid-settings GUI client.
+ This package installs the fluid-settings Graphical User Interface client.
+ It gives the user access to the fluid setting using a simple window with
+ lists of services, their settings, and the value of each setting.
+
 # vim: ts=4 sw=4 et

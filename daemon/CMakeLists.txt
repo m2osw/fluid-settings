@@ -37,7 +37,7 @@ add_executable(${PROJECT_NAME}
     replicator_in.cpp
     replicator_out.cpp
     save_timer.cpp
-    #settings.cpp
+
     #tcp_listener.cpp
     #udp_listener.cpp
 )

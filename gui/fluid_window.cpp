@@ -144,13 +144,12 @@ constexpr advgetopt::options_environment const g_options_environment =
  */
 FluidWindow::FluidWindow(int argc, char * argv[], QApplication & app)
     : QMainWindow()
-    , communicator(f_opts)
+    , communicator(f_opts, "fluid_settings_gui")
     , f_application(app) // Note: &f_application == qApp
     , f_opts(g_options_environment)
     , f_communicator(ed::communicator::instance())
 {
     snaplogger::add_logger_options(f_opts);
-    add_communicatord_options();
     f_opts.finish_parsing(argc, argv);
     if(!snaplogger::process_logger_options(f_opts, "/etc/fluid-settings/logger"))
     {

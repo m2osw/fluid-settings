@@ -26,7 +26,7 @@ set(CMAKE_AUTOMOC TRUE)
 ##
 ## fluid settings graphical user interface
 ##
-project(fluidgui)
+project(fluid-settings-gui)
 
 qt5_wrap_ui(
     USER_INTERFACE_HEADERS
