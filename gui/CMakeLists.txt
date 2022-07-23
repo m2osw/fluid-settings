@@ -16,72 +16,75 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# TODO: make those non-required and if not available, skip the entire thing
-find_package(Qt5Core              REQUIRED)
-find_package(Qt5Widgets           REQUIRED)
-find_package(EventDispatcherQt    REQUIRED)
+find_package(Qt5Core)
+find_package(Qt5Widgets)
+find_package(EventDispatcherQt)
 
-set(CMAKE_AUTOMOC TRUE)
+if(Qt5Core_FOUND AND Qt5Widgets_FOUND AND EventDispatcherQt_FOUND)
 
-##
-## fluid settings graphical user interface
-##
-project(fluid-settings-gui)
+    set(CMAKE_AUTOMOC TRUE)
 
-qt5_wrap_ui(
-    USER_INTERFACE_HEADERS
-        fluid_settings.ui
-)
+    ##
+    ## fluid settings graphical user interface
+    ##
+    project(fluid-settings-gui)
 
-qt5_add_resources(
-    RESOURCE_FILES
+    qt5_wrap_ui(
+        USER_INTERFACE_HEADERS
+            fluid_settings.ui
+    )
+
+    qt5_add_resources(
+        RESOURCE_FILES
+            resources.qrc
+    )
+
+    add_executable(${PROJECT_NAME}
+        ${USER_INTERFACE_HEADERS}
+        ${RESOURCE_FILES}
+
+        fluid_window.cpp
+        main.cpp
         resources.qrc
-)
+    )
 
-add_executable(${PROJECT_NAME}
-    ${USER_INTERFACE_HEADERS}
-    ${RESOURCE_FILES}
+    target_include_directories(${PROJECT_NAME}
+        PUBLIC
+            ${PROJECT_BINARY_DIR}
+            ${ADVGETOPT_INCLUDE_DIRS}
+            ${COMMUNICATORD_INCLUDE_DIRS}
+            ${EVENTDISPATCHER_INCLUDE_DIRS}
+            ${LIBADDR_INCLUDE_DIRS}
+            ${LIBEXCEPT_INCLUDE_DIRS}
+            ${Qt5Core_INCLUDE_DIRS}
+            ${Qt5Widgets_INCLUDE_DIRS}
+            ${SNAPLOGGER_INCLUDE_DIRS}
+    )
 
-    fluid_window.cpp
-    main.cpp
-    resources.qrc
-)
+    target_link_libraries(${PROJECT_NAME}
+        fluid-settings
+        ${ADVGETOPT_LIBRARIES}
+        ${COMMUNICATORD_LIBRARIES}
+        ${EVENTDISPATCHER_LIBRARIES}
+        ${EVENTDISPATCHER_QT_LIBRARIES}
+        ${LIBADDR_LIBRARIES}
+        ${LIBEXCEPT_LIBRARIES}
+        ${SNAPLOGGER_LIBRARIES}
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${PROJECT_BINARY_DIR}
-        ${ADVGETOPT_INCLUDE_DIRS}
-        ${COMMUNICATORD_INCLUDE_DIRS}
-        ${EVENTDISPATCHER_INCLUDE_DIRS}
-        ${LIBADDR_INCLUDE_DIRS}
-        ${LIBEXCEPT_INCLUDE_DIRS}
-        ${Qt5Core_INCLUDE_DIRS}
-        ${Qt5Widgets_INCLUDE_DIRS}
-        ${SNAPLOGGER_INCLUDE_DIRS}
-)
+        Qt5::Core
+        Qt5::Widgets
+    )
 
-target_link_libraries(${PROJECT_NAME}
-    fluid-settings
-    ${ADVGETOPT_LIBRARIES}
-    ${COMMUNICATORD_LIBRARIES}
-    ${EVENTDISPATCHER_LIBRARIES}
-    ${EVENTDISPATCHER_QT_LIBRARIES}
-    ${LIBADDR_LIBRARIES}
-    ${LIBEXCEPT_LIBRARIES}
-    ${SNAPLOGGER_LIBRARIES}
+    install(
+        TARGETS
+            ${PROJECT_NAME}
 
-    Qt5::Core
-    Qt5::Widgets
-)
+        RUNTIME DESTINATION
+            bin
+    )
 
-install(
-    TARGETS
-        ${PROJECT_NAME}
-
-    RUNTIME DESTINATION
-        bin
-)
-
-
+else()
+    message("Qt not found. The GUI will not be built.")
+endif()
 
 # vim: ts=4 sw=4 et

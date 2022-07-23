@@ -150,6 +150,16 @@ void messenger::msg_connected(ed::message & msg)
 }
 
 
+/** \brief Delete a value.
+ *
+ * This function resets the named setting.
+ *
+ * Note that it does not really \em delete the value since it is not possible
+ * to do so. Instead, it resets the value back to its defaults. If no default,
+ * then the value still exists but is unassigned (FLUID_SETTINGS_NOT_SET).
+ *
+ * \param[in] msg  The message used to find the name of the value to delete.
+ */
 void messenger::msg_delete(ed::message & msg)
 {
     ed::message reply;
@@ -205,6 +215,12 @@ void messenger::msg_delete(ed::message & msg)
 }
 
 
+/** \brief Forget a previously registered listener.
+ *
+ * This message is used to disconnect from the fluid-settings service.
+ *
+ * \param[in] msg  The message with the information of which service(s) to forget.
+ */
 void messenger::msg_forget(ed::message & msg)
 {
     ed::message reply;
@@ -436,31 +452,90 @@ void messenger::msg_listen(ed::message & msg)
     ed::message reply;
     reply.reply_to(msg);
 
-    std::string const server(msg.get_server());
-    std::string const service(msg.get_service());
+    std::string const server(msg.get_sent_from_server());
+    std::string const service(msg.get_sent_from_service());
 
     if(server.empty()
     || service.empty()
     || !msg.has_parameter("names"))
     {
         reply.set_command("FLUID_SETTINGS_ERROR");
-        reply.add_parameter("error", "parameter \"server\" or \"service\" or \"names\" missing in message");
+        reply.add_parameter("error", "parameter \"server\" ("
+                + server
+                + ") or \"service\" ("
+                + service
+                + ") are empty or parameter \"names\" ("
+                + (msg.has_parameter("names") ? msg.get_parameter("names") : std::string())
+                + ") is missing in message");
         reply.add_parameter("error_command", "FLUID_SETTINGS_LISTEN");
         send_message(reply);
         return;
     }
 
     std::string const names(msg.get_parameter("names"));
+
+    reply.set_command("FLUID_SETTINGS_REGISTERED");
     if(f_server->listen(server, service, names))
     {
-        reply.set_command("FLUID_SETTINGS_REGISTERED");
         reply.add_parameter("message", "already registered");
-        send_message(reply);
     }
-    else
+    send_message(reply);
+
+    // we then want to send the current value as if the value had just been
+    // updated although the message will clearly say that it is the current
+    // value
+    //
+    advgetopt::string_list_t split_names;
+    advgetopt::split_string(names, split_names, { "," });
+    for(auto const & n : split_names)
     {
-        reply.set_command("FLUID_SETTINGS_REGISTERED");
-        send_message(reply);
+        ed::message current_value;
+        current_value.reply_to(msg);
+        current_value.set_command("FLUID_SETTINGS_VALUE_UPDATED");
+        current_value.add_parameter("name", n);
+
+        std::string value;
+        fluid_settings::get_result_t const r(f_server->get_value(
+                      n
+                    , value
+                    , fluid_settings::HIGHEST_PRIORITY
+                    , false));
+        switch(r)
+        {
+        case fluid_settings::get_result_t::GET_RESULT_DEFAULT:
+            current_value.add_parameter("default", "true");
+            [[fallthrough]];
+        case fluid_settings::get_result_t::GET_RESULT_SUCCESS:
+            current_value.add_parameter("value", value);
+            current_value.add_parameter("message", "current value");
+            break;
+
+        case fluid_settings::get_result_t::GET_RESULT_NOT_SET:
+            current_value.add_parameter("error", "not set");
+            break;
+
+        case fluid_settings::get_result_t::GET_RESULT_PRIORITY_NOT_FOUND:
+            // this one should never happen since we use "highest"
+            //
+            current_value.add_parameter("error", "priority not found");
+            break;
+
+        case fluid_settings::get_result_t::GET_RESULT_ERROR:
+            current_value.add_parameter(
+                      "error", "found a parameter named \""
+                    + n
+                    + "\" but no corresponding value (logic error)");
+            break;
+
+        case fluid_settings::get_result_t::GET_RESULT_UNKNOWN:
+            current_value.add_parameter("error",
+                      "no parameter named \""
+                    + n
+                    + "\"");
+            break;
+
+        }
+        send_message(current_value);
     }
 }
 
@@ -492,7 +567,7 @@ void messenger::msg_put(ed::message & msg)
     }
     else
     {
-        timestamp.gettime();
+        timestamp = timestamp.gettime();
     }
 
     int priority(50);
@@ -502,26 +577,63 @@ void messenger::msg_put(ed::message & msg)
         if(priority < 0 || priority > 99)
         {
             reply.set_command("FLUID_SETTINGS_ERROR");
-            reply.add_parameter("error", "parameter \"priority\" is out of range (0 .. 99)");
+            reply.add_parameter("error", "parameter \"priority\" ("
+                                + std::to_string(priority)
+                                + ") is out of range (0 .. 99)");
             reply.add_parameter("error_command", "FLUID_SETTINGS_PUT");
             send_message(reply);
             return;
         }
     }
 
-    if(f_server->set_value(name, value, priority, timestamp))
+    fluid_settings::set_result_t const result(f_server->set_value(name, value, priority, timestamp));
+    switch(result)
     {
+    case fluid_settings::set_result_t::SET_RESULT_NEW: // that value was not yet set
         reply.set_command("FLUID_SETTINGS_UPDATED");
         reply.add_parameter("name", name);
-        send_message(reply);
-    }
-    else
-    {
+        reply.add_parameter("reason", "new");
+        break;
+
+    case fluid_settings::set_result_t::SET_RESULT_NEWER: // timestamp changed, value is the same
+        reply.set_command("FLUID_SETTINGS_UPDATED");
+        reply.add_parameter("name", name);
+        reply.add_parameter("reason", "newer");
+        break;
+
+    case fluid_settings::set_result_t::SET_RESULT_NEW_PRIORITY: // new value at that priority
+        reply.set_command("FLUID_SETTINGS_UPDATED");
+        reply.add_parameter("name", name);
+        reply.add_parameter("reason", "new priority");
+        break;
+
+    case fluid_settings::set_result_t::SET_RESULT_CHANGED: // value existed and was replaced
+        reply.set_command("FLUID_SETTINGS_UPDATED");
+        reply.add_parameter("name", name);
+        reply.add_parameter("reason", "changed");
+        break;
+
+    case fluid_settings::set_result_t::SET_RESULT_UNCHANGED: // value exists and no change was required (timestamp is older than current value timestamp)
+        reply.set_command("FLUID_SETTINGS_UPDATED");
+        reply.add_parameter("name", name);
+        reply.add_parameter("reason", "unchanged");
+        break;
+
+    case fluid_settings::set_result_t::SET_RESULT_ERROR: // value was refused by advgetopt
         reply.set_command("FLUID_SETTINGS_ERROR");
-        reply.add_parameter("error", "setting named \"" + name + "\" to value \"" + value + "\" failed");
+        reply.add_parameter("error", "put named setting \"" + name + "\" to value \"" + value + "\" failed");
         reply.add_parameter("error_command", "FLUID_SETTINGS_PUT");
-        send_message(reply);
+        break;
+
+    case fluid_settings::set_result_t::SET_RESULT_UNKNOWN: // no settings with that name found
+        reply.set_command("FLUID_SETTINGS_ERROR");
+        reply.add_parameter("error", "no parameter named \"" + name + "\"");
+        reply.add_parameter("error_command", "FLUID_SETTINGS_PUT");
+        break;
+
     }
+
+    send_message(reply);
 }
 
 

@@ -43,6 +43,11 @@ namespace fluid_settings
 {
 
 
+constexpr char const * const g_settings_file = "/var/lib/fluid-settings/settings/settings.conf";
+constexpr char const * const g_definitions_path = "/usr/share/fluid-settings/definitions:/var/lib/fluid-settings/definitions";
+constexpr char const * const g_definitions_pattern = "*.ini";
+
+
 enum class get_result_t
 {
     GET_RESULT_ERROR,               // some error happened (other than value undefined)
@@ -51,6 +56,17 @@ enum class get_result_t
     GET_RESULT_PRIORITY_NOT_FOUND,  // some values are set, but not at the requested priority
     GET_RESULT_DEFAULT,             // default value is being returned
     GET_RESULT_SUCCESS,             // the value(s) is(are) being returned
+};
+
+enum class set_result_t
+{
+    SET_RESULT_ERROR,               // some error happened
+    SET_RESULT_UNKNOWN,             // the named was not found in the existing values
+    SET_RESULT_NEW,                 // that value was not set yet
+    SET_RESULT_NEW_PRIORITY,        // the value existed, but not at that priority
+    SET_RESULT_CHANGED,             // the value was changed
+    SET_RESULT_NEWER,               // the timestamp changed, the value is the same
+    SET_RESULT_UNCHANGED,           // the timestamp is older or the same
 };
 
 
@@ -64,21 +80,24 @@ public:
                                   std::string paths = std::string());
     std::string             list_of_options();
     get_result_t            get_value(
-                                  std::string const & name
+                                  std::string name
                                 , std::string & value
                                 , priority_t priority = HIGHEST_PRIORITY
                                 , bool all = false);
-    bool                    set_value(
-                                  std::string const & name
+    set_result_t            set_value(
+                                  std::string name
                                 , std::string const & value
                                 , int priority
                                 , snapdev::timespec_ex const & timestamp);
     bool                    reset_setting(
-                                  std::string const & name
+                                  std::string name
                                 , int priority);
     void                    load(std::string const & filename);
     void                    save(std::string const & filename);
-    std::string             serialize_value(std::string const & name);
+    std::string             serialize_value(std::string name);
+    void                    unserialize_values(
+                                  std::string const & name
+                                , std::string const & value);
 
     static char const *     get_default_settings_filename();
     static char const *     get_default_path();

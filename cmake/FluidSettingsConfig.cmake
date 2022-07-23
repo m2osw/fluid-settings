@@ -1,9 +1,10 @@
 # - Find Fluid Settings
 #
-# FLUIDSETTINGS_FOUND        - System has FluidSettings
-# FLUIDSETTINGS_INCLUDE_DIRS - The FluidSettings include directories
-# FLUIDSETTINGS_LIBRARIES    - The libraries needed to use FluidSettings
-# FLUIDSETTINGS_DEFINITIONS  - Compiler switches required for using FluidSettings
+# FLUIDSETTINGS_FOUND                   - System has FluidSettings
+# FLUIDSETTINGS_INCLUDE_DIRS            - The FluidSettings include directories
+# FLUIDSETTINGS_LIBRARIES               - The libraries needed to use FluidSettings
+# FLUIDSETTINGS_DEFINITIONS             - Compiler switches required for using FluidSettings
+# FLUIDSETTINGS_DEFINITIONS_INSTALL_DIR - Directory where to install FluidSettings defiinitions
 #
 # License:
 #

@@ -66,6 +66,10 @@ ed::dispatcher<client>::dispatcher_match::vector_t const g_dispatcher_messages =
           "FLUID_SETTINGS_OPTIONS"
         , &client::msg_options
     },
+    { // reply to LISTEN
+          "FLUID_SETTINGS_REGISTERED"
+        , &client::msg_registered
+    },
     { // reply to PUT
           "FLUID_SETTINGS_UPDATED"
         , &client::msg_updated
@@ -87,7 +91,7 @@ client::client(cli * parent, addr::addr const & address)
             , ed::mode_t::MODE_PLAIN
             , ed::DEFAULT_PAUSE_BEFORE_RECONNECTING
             , true
-            , "fluid_settings_cli")
+            , get_our_service_name())
     , f_parent(parent)
     , f_dispatcher(std::make_shared<ed::dispatcher<client>>(this, g_dispatcher_messages))
 {
@@ -165,6 +169,14 @@ void client::msg_failed(ed::message & msg)
 void client::msg_options(ed::message & msg)
 {
     f_parent->list(msg);
+}
+
+
+void client::msg_registered(ed::message & msg)
+{
+    snapdev::NOT_USED(msg);
+
+    f_parent->registered();
 }
 
 

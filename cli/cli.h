@@ -63,6 +63,7 @@ public:
     void                ready();
     void                deleted();
     void                list(ed::message & msg);
+    void                registered();
     void                updated();
     void                value(ed::message & msg, bool is_default);
     void                value_updated(ed::message & msg);
@@ -83,6 +84,9 @@ private:
                         f_timer = ed::connection::pointer_t();
     bool                f_success = false;
 };
+
+
+std::string const & get_our_service_name();
 
 
 } // namespace fluid_settings_cli

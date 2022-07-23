@@ -29,6 +29,11 @@
 #include	"exception.h"
 
 
+// snapdev
+//
+#include	<snapdev/timestamp.h>
+
+
 // last include
 //
 #include	<snapdev/poison.h>
@@ -37,6 +42,17 @@
 
 namespace fluid_settings
 {
+
+
+constexpr time_t const      g_oldest_fluid_setting_date = snapdev::unix_timestamp(
+                                          2022      // year
+                                        , 7         // month
+                                        , 21        // day
+                                        , 0         // hour
+                                        , 0         // minute
+                                        , 0);       // second
+
+timestamp_t const           g_oldest_fluid_setting(g_oldest_fluid_setting_date, 0);
 
 
 
@@ -57,17 +73,13 @@ void value::set_value(
             + std::to_string(MAXIMUM_PRIORITY)
             + ").");
     }
-    timestamp_t now(snapdev::timespec_ex::gettime());
-    timestamp_t max_diff(60 * 60, 0);   // 1h
-    now -= max_diff;
-    if(timestamp < now)
+    if(timestamp < g_oldest_fluid_setting)
     {
         throw fluid_settings_parameter_error(
-              "timestamp too low to be acceptable; a message should"
-              " never take 1h or more to travel to the fluid-settings service ("
+              "value timestamp from before fluid-settings' birth ("
             + timestamp.to_string()
             + " < "
-            + now.to_string()
+            + g_oldest_fluid_setting.to_string()
             + ").");
     }
 

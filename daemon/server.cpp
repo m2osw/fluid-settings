@@ -57,6 +57,7 @@
 // advgetopt
 //
 #include    <advgetopt/exception.h>
+#include    <advgetopt/validator_duration.h>
 #include    <advgetopt/validator_integer.h>
 
 
@@ -132,7 +133,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("/var/lib/fluid-settings/settings/settings.conf")
+        , advgetopt::DefaultValue(fluid_settings::g_settings_file)
         , advgetopt::Help("a full path and filename to a file where to save the fluid settings.")
     ),
     advgetopt::define_option(
@@ -140,7 +141,8 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("5")
+        , advgetopt::DefaultValue("5s")
+        , advgetopt::Validator("duration")
         , advgetopt::Help("number of seconds to wait before saving the latest changes; must be a valid positive number.")
     ),
     advgetopt::define_option(
@@ -268,7 +270,7 @@ bool server::prepare_settings()
             << SNAP_LOG_SEND;
     }
 
-    f_settings.load(f_settings.get_default_settings_filename());
+    f_settings.load(f_opts.get_string("settings"));
 
     return true;
 }
@@ -291,17 +293,32 @@ bool server::prepare_listener()
 
 bool server::prepare_save_timer()
 {
-    f_save_timeout = f_opts.get_long("save-timeout");
-    if(f_save_timeout <= 0)
+    std::string const & timeout(f_opts.get_string("save-timeout"));
+    double seconds(0.0);
+    if(!advgetopt::validator_duration::convert_string(
+              timeout
+            , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+            , seconds))
     {
         SNAP_LOG_FATAL
-            << "the --save-timeout parameter must be a valid positive number (\""
-            << f_opts.get_string("save-timeout")
+            << "the --save-timeout parameter must be a valid duration (\""
+            << timeout
             << "\" is invalid)."
             << SNAP_LOG_SEND;
         return false;
     }
-    f_save_timer = std::make_shared<save_timer>(this, f_save_timeout * 1'000);
+    if(seconds <= 0.0)
+    {
+        SNAP_LOG_FATAL
+            << "the --save-timeout parameter must be a valid positive duration (\""
+            << timeout
+            << "\" is invalid)."
+            << SNAP_LOG_SEND;
+        return false;
+    }
+    f_save_timeout = seconds * 1'000'000;
+
+    f_save_timer = std::make_shared<save_timer>(this, f_save_timeout);
     f_communicator->add_connection(f_save_timer);
 
     return true;
@@ -397,7 +414,7 @@ bool server::forget(
     if(split_names.empty())
     {
         SNAP_LOG_INFO
-            << "received a listen() message with an empty list of names."
+            << "received a forget() message with an empty list of names."
             << SNAP_LOG_SEND;
         return false;
     }
@@ -445,19 +462,27 @@ fluid_settings::get_result_t server::get_value(
 }
 
 
-bool server::set_value(
+fluid_settings::set_result_t server::set_value(
       std::string const & name
     , std::string const & value
     , fluid_settings::priority_t priority
     , fluid_settings::timestamp_t const & timestamp)
 {
-    if(f_settings.set_value(name, value, priority, timestamp))
+    fluid_settings::set_result_t result(f_settings.set_value(name, value, priority, timestamp));
+    switch(result)
     {
+    case fluid_settings::set_result_t::SET_RESULT_NEW:
+    case fluid_settings::set_result_t::SET_RESULT_NEW_PRIORITY:
+    case fluid_settings::set_result_t::SET_RESULT_CHANGED:
         value_changed(name);
-        return true;
+        break;
+
+    default:
+        break;
+
     }
 
-    return false;
+    return result;
 }
 
 
@@ -495,7 +520,8 @@ void server::value_changed(std::string const & name)
     for(auto const & s : f_listeners[name])
     {
         ed::message new_value;
-        new_value.set_command("NEW_VALUE");
+        new_value.set_command("FLUID_SETTINGS_VALUE_UPDATED");
+        new_value.add_parameter("name", name);
         switch(result)
         {
         case fluid_settings::get_result_t::GET_RESULT_SUCCESS:
@@ -529,6 +555,7 @@ void server::value_changed(std::string const & name)
     // next we want to tell the other fluid-settings that things changed
     //
     ed::message value_changed;
+    value_changed.set_command("VALUE_CHANGED");
     value_changed.add_parameter("name", name);
     value_changed.add_parameter("values", f_settings.serialize_value(name));
     ed::broadcast_message(f_replicators, value_changed, false);
@@ -645,67 +672,7 @@ void server::remote_value_changed(
 
     std::string const values(msg.get_parameter("values"));
 
-    // one value per line
-    // lines are separated by fluid_settings::VALUE_SEPARATOR ('\n')
-    //
-    // one value has three parameters: priority, timestamp, actual value
-    // parameters are separated by fluid_settings::FIELD_SEPARATOR ('|')
-    //
-    std::string const separator(std::string(1, fluid_settings::settings::FIELD_SEPARATOR));
-    std::list<std::string> lines;
-    snapdev::tokenize_string(lines, values, { "\n" });
-    for(auto const & l : lines)
-    {
-        std::vector<std::string> params;
-        snapdev::tokenize_string(params, l, { "|" });
-        if(params.size() != 3)
-        {
-            // skip invalid entries
-            SNAP_LOG_RECOVERABLE_ERROR
-                << "invalid value \""
-                << l
-                << "\" found in VALUE_CHANGED message."
-                << SNAP_LOG_SEND;
-            continue;
-        }
-
-        std::int64_t priority(0);
-        if(!advgetopt::validator_integer::convert_string(params[0], priority))
-        {
-            SNAP_LOG_RECOVERABLE_ERROR
-                << "invalid priority \""
-                << params[0]
-                << "\" found in VALUE_CHANGED message."
-                << SNAP_LOG_SEND;
-            continue;
-        }
-
-        std::int64_t timestamp_nsec(0);
-        if(!advgetopt::validator_integer::convert_string(params[1], timestamp_nsec))
-        {
-            SNAP_LOG_RECOVERABLE_ERROR
-                << "invalid timestamp \""
-                << params[1]
-                << "\" found in VALUE_CHANGED message."
-                << SNAP_LOG_SEND;
-            continue;
-        }
-
-        std::string const value(snapdev::string_replace_many(
-                    params[2],
-                    {
-                        { "\\P", separator },
-                        { "\\S", "\\" },
-                        { "\\n", "\n" },
-                        { "\\r", "\r" },
-                    }));
-
-        set_value(
-              name
-            , value
-            , static_cast<fluid_settings::priority_t>(priority)
-            , timestamp_nsec);
-    }
+    f_settings.unserialize_values(name, values);
 }
 
 

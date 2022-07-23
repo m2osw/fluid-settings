@@ -140,7 +140,8 @@ advgetopt::option const g_options[] =
         , advgetopt::ShortName('p')
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_COMMANDS
-            , advgetopt::GETOPT_FLAG_REQUIRED>())
+            , advgetopt::GETOPT_FLAG_REQUIRED
+            , advgetopt::GETOPT_FLAG_MULTIPLE>())
         , advgetopt::Alias("set")
     ),
     advgetopt::define_option(
@@ -148,7 +149,8 @@ advgetopt::option const g_options[] =
         , advgetopt::ShortName('s')
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_COMMANDS
-            , advgetopt::GETOPT_FLAG_REQUIRED>())
+            , advgetopt::GETOPT_FLAG_REQUIRED
+            , advgetopt::GETOPT_FLAG_MULTIPLE>())
         , advgetopt::Help("set a value.")
     ),
     advgetopt::define_option(
@@ -227,6 +229,12 @@ constexpr advgetopt::options_environment const g_options_environment =
 
 
 
+
+std::string     g_service_name;
+
+
+
+
 }
 // no name namespace
 
@@ -248,12 +256,19 @@ cli::cli(int argc, char *argv[])
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
     }
 
+    g_service_name = "fluid_settings_cli";
+    g_service_name += std::to_string(getpid());
+
     int cmd(0);
     if(f_opts.is_defined("delete"))
     {
         ++cmd;
     }
     if(f_opts.is_defined("get"))
+    {
+        ++cmd;
+    }
+    if(f_opts.is_defined("list-all"))
     {
         ++cmd;
     }
@@ -334,7 +349,10 @@ void cli::ready()
     {
         msg.set_command("FLUID_SETTINGS_LIST");
         msg.set_service("fluid_settings");
-        msg.add_parameter("name", f_opts.get_string("get"));
+        if(f_opts.is_defined("list-options"))
+        {
+            msg.add_parameter("name", f_opts.get_string("list-options"));
+        }
         msg.add_parameter("cache", "no;reply");
         f_client->send_message(msg);
     }
@@ -474,6 +492,14 @@ void cli::list(ed::message & msg)
 }
 
 
+void cli::registered()
+{
+    // we are registered to watch for changes so we do not want to time out
+    //
+    f_timer->set_enable(false);
+}
+
+
 void cli::updated()
 {
     f_success = true;
@@ -511,10 +537,19 @@ void cli::value_updated(ed::message & msg)
         std::cout << msg.get_parameter("name") << '=';
         print_value(msg.get_parameter("value"));
     }
+    else if(msg.has_parameter("error"))
+    {
+        SNAP_LOG_ERROR
+            << "FLUID_SETTINGS_VALUE_UPDATED message returned an error: "
+            << msg.get_parameter("error")
+            << SNAP_LOG_SEND;
+    }
     else
     {
         SNAP_LOG_ERROR
-            << "message from LISTEN command did not include a \"name\" or a \"value\" parameter."
+            << "FLUID_SETTINGS_VALUE_UPDATED message did not include a \"name\" or a \"value\" parameter (message: "
+            << msg.to_string()
+            << ")."
             << SNAP_LOG_SEND;
     }
 }
@@ -572,6 +607,11 @@ bool cli::print_value(std::string const & value)
     return result;
 }
 
+
+std::string const & get_our_service_name()
+{
+    return g_service_name;
+}
 
 
 } // fluid_settings namespace

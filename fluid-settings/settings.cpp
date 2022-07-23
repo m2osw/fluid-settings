@@ -76,9 +76,6 @@ namespace
 {
 
 
-constexpr char const * const g_settings_file = "/var/lib/fluid-settings/settings/settings.conf";
-constexpr char const * const g_definitions_path = "/usr/share/fluid-settings/definitions:/var/lib/fluid-settings/definitions";
-constexpr char const * const g_definitions_pattern = "*.ini";
 
 
 #pragma GCC diagnostic push
@@ -291,11 +288,12 @@ std::string settings::list_of_options()
  * \return true if a value was found, false otherwise.
  */
 get_result_t settings::get_value(
-      std::string const & name
+      std::string name
     , std::string & result
     , priority_t priority
     , bool all)
 {
+    std::replace(name.begin(), name.end(), '_', '-');
     advgetopt::option_info::pointer_t o(f_opts->get_option(name));
     if(o == nullptr)
     {
@@ -379,16 +377,19 @@ get_result_t settings::get_value(
 }
 
 
-bool settings::set_value(
-      std::string const & name
+set_result_t settings::set_value(
+      std::string name
     , std::string const & new_value
     , int priority
     , timestamp_t const & timestamp)
 {
+    std::replace(name.begin(), name.end(), '_', '-');
     advgetopt::option_info::pointer_t o(f_opts->get_option(name));
     if(o == nullptr)
     {
-        return false;
+        // value not defined at all
+        //
+        return set_result_t::SET_RESULT_UNKNOWN;
     }
 
     o->set_value(
@@ -397,7 +398,9 @@ bool settings::set_value(
             , advgetopt::option_source_t::SOURCE_DYNAMIC);
     if(!o->is_defined())
     {
-        return false;
+        // value not accepted by advgetopt
+        //
+        return set_result_t::SET_RESULT_ERROR;
     }
 
     value v;
@@ -409,33 +412,40 @@ bool settings::set_value(
         // no such value yet, just save that value_priority as is
         //
         f_values[name].insert(v);
-    }
-    else
-    {
-        auto vp(it->second.find(v));
-        if(vp == it->second.end())
-        {
-            // not there yet, just insert
-            //
-            it->second.insert(v);
-        }
-        else if(timestamp > vp->get_timestamp())
-        {
-            // it was already there, but message value is more recent
-            // than stored value so keep it
-            //
-            it->second.insert(v);
-        }
+        return set_result_t::SET_RESULT_NEW;
     }
 
-    return true;
+    auto vp(it->second.find(v));
+    if(vp == it->second.end())
+    {
+        // not there yet, just insert
+        //
+        it->second.insert(v);
+        return set_result_t::SET_RESULT_NEW_PRIORITY;
+    }
+
+    if(timestamp > vp->get_timestamp())
+    {
+        // it was already there, but message value is more recent
+        // than stored value so keep the newer one
+        //
+        set_result_t const result(v.get_value() == vp->get_value()
+                                ? set_result_t::SET_RESULT_NEWER
+                                : set_result_t::SET_RESULT_CHANGED);
+        it->second.erase(vp);   // in sets we need to remove the old one first
+        it->second.insert(v);   // otherwise the insert does nothing
+        return result;
+    }
+
+    return set_result_t::SET_RESULT_UNCHANGED;
 }
 
 
 bool settings::reset_setting(
-      std::string const & name
+      std::string name
     , priority_t priority)
 {
+    std::replace(name.begin(), name.end(), '_', '-');
     advgetopt::option_info::pointer_t o(f_opts->get_option(name));
     if(o == nullptr)
     {
@@ -472,7 +482,12 @@ bool settings::reset_setting(
 
 void settings::load(std::string const & filename)
 {
-    advgetopt::conf_file_setup setup(filename);
+    advgetopt::conf_file_setup setup(
+                  filename
+                , advgetopt::line_continuation_t::line_continuation_unix
+                , advgetopt::ASSIGNMENT_OPERATOR_EQUAL
+                , advgetopt::COMMENT_INI | advgetopt::COMMENT_SHELL
+                , advgetopt::SECTION_OPERATOR_CPP);
     advgetopt::conf_file::pointer_t data(advgetopt::conf_file::get_conf_file(setup));
 
     for(auto const & p : data->get_parameters())
@@ -509,14 +524,19 @@ void settings::load(std::string const & filename)
 
 void settings::save(std::string const & filename)
 {
-    advgetopt::conf_file_setup setup(filename);
+    advgetopt::conf_file_setup setup(
+                  filename
+                , advgetopt::line_continuation_t::line_continuation_unix
+                , advgetopt::ASSIGNMENT_OPERATOR_EQUAL
+                , advgetopt::COMMENT_INI | advgetopt::COMMENT_SHELL
+                , advgetopt::SECTION_OPERATOR_CPP);
     advgetopt::conf_file::pointer_t data(advgetopt::conf_file::get_conf_file(setup));
 
     // TODO: look into a way to not have to do that erase since it is really
     //       slow (it deletes one parameter at a time and saves all the info)
     //
     //       this happens in part because the configuration files are
-    //       cached in memory (for speed) -- deleting the file has not
+    //       cached in memory (for speed) -- deleting the file has no
     //       effect since the cache is always returned at the moment
     //
     data->erase_all_parameters();
@@ -553,9 +573,11 @@ void settings::save(std::string const & filename)
 }
 
 
-std::string settings::serialize_value(std::string const & name)
+std::string settings::serialize_value(std::string name)
 {
     std::string result;
+
+    std::replace(name.begin(), name.end(), '_', '-');
 
     auto m(f_values.find(name));
     if(m == f_values.end())
@@ -588,6 +610,78 @@ std::string settings::serialize_value(std::string const & name)
     }
 
     return result;
+}
+
+
+void settings::unserialize_values(
+          std::string const & name
+        , std::string const & values)
+{
+    // no need to fix 'name' here because it will be done in set_value()
+
+    // one value per line
+    // lines are separated by fluid_settings::VALUE_SEPARATOR ('\n')
+    //
+    // one value has three parameters: priority, timestamp, actual value
+    // parameters are separated by fluid_settings::FIELD_SEPARATOR ('|')
+    //
+    std::string const separator(std::string(1, fluid_settings::settings::FIELD_SEPARATOR));
+    std::list<std::string> lines;
+    snapdev::tokenize_string(lines, values, { std::string(1, fluid_settings::settings::VALUE_SEPARATOR) });
+    for(auto const & l : lines)
+    {
+        std::vector<std::string> params;
+        snapdev::tokenize_string(params, l, { separator });
+        if(params.size() != 3)
+        {
+            // skip invalid entries
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "\""
+                << l
+                << "\" is invalid as it does not include exactly 3 parts (priority, timestamp, value) separated by '"
+                << separator
+                << "'."
+                << SNAP_LOG_SEND;
+            continue;
+        }
+
+        std::int64_t priority(0);
+        if(!advgetopt::validator_integer::convert_string(params[0], priority))
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "invalid priority \""
+                << params[0]
+                << "\" found in serialized values."
+                << SNAP_LOG_SEND;
+            continue;
+        }
+
+        std::int64_t timestamp_nsec(0);
+        if(!advgetopt::validator_integer::convert_string(params[1], timestamp_nsec))
+        {
+            SNAP_LOG_RECOVERABLE_ERROR
+                << "invalid timestamp \""
+                << params[1]
+                << "\" found in serialized values."
+                << SNAP_LOG_SEND;
+            continue;
+        }
+
+        std::string const value(snapdev::string_replace_many(
+                    params[2],
+                    {
+                        { "\\P", separator },
+                        { "\\S", "\\" },
+                        { "\\n", "\n" },
+                        { "\\r", "\r" },
+                    }));
+
+        set_value(
+              name
+            , value
+            , static_cast<fluid_settings::priority_t>(priority)
+            , timestamp_nsec);
+    }
 }
 
 

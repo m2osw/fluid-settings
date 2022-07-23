@@ -75,7 +75,8 @@ public:
                                 , std::string & value
                                 , fluid_settings::priority_t priority
                                 , bool all);
-    bool                    set_value(
+    fluid_settings::set_result_t
+                            set_value(
                                   std::string const & name
                                 , std::string const & value
                                 , fluid_settings::priority_t priority
@@ -109,7 +110,7 @@ private:
     addr::addr              f_listener_address = addr::addr();
     ed::tcp_server_connection::pointer_t
                             f_listener = ed::tcp_server_connection::pointer_t();
-    std::int64_t            f_save_timeout = 5;
+    std::int64_t            f_save_timeout = 5'000'000;
     ed::timer::pointer_t    f_save_timer = ed::timer::pointer_t();
     fluid_settings::settings
                             f_settings = fluid_settings::settings();
