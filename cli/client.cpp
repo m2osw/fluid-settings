@@ -82,6 +82,10 @@ ed::dispatcher<client>::dispatcher_match::vector_t const g_dispatcher_messages =
           "FLUID_SETTINGS_VALUE_UPDATED"
         , &client::msg_value_updated
     },
+    { // reply to SERVICESTATUS and messages when the status changes
+          "STATUS"
+        , &client::msg_status
+    },
 };
 
 
@@ -199,6 +203,23 @@ void client::msg_value_updated(ed::message & msg)
     snapdev::NOT_USED(msg);
 
     f_parent->value_updated(msg);
+}
+
+
+void client::msg_status(ed::message & msg)
+{
+    if(msg.has_parameter("status"))
+    {
+        if(msg.get_parameter("status") == "up")
+        {
+            std::cout << "fluid_settings service is up.\n";
+            f_parent->fluid_settings_listen();
+        }
+        else
+        {
+            std::cout << "fluid_settings service is down.\n";
+        }
+    }
 }
 
 

@@ -61,6 +61,7 @@ public:
 
     int                 run();
     void                ready();
+    void                fluid_settings_listen();
     void                deleted();
     void                list(ed::message & msg);
     void                registered();

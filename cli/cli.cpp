@@ -175,7 +175,8 @@ advgetopt::option const g_options[] =
         , advgetopt::ShortName('w')
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_COMMANDS
-            , advgetopt::GETOPT_FLAG_REQUIRED>())
+            , advgetopt::GETOPT_FLAG_REQUIRED
+            , advgetopt::GETOPT_FLAG_MULTIPLE>())
         , advgetopt::Help("watch values until Ctrl-C is hit.")
     ),
     advgetopt::end_options()
@@ -367,10 +368,11 @@ void cli::ready()
     }
     else if(f_opts.is_defined("watch"))
     {
-        msg.set_command("FLUID_SETTINGS_LISTEN");
-        msg.set_service("fluid_settings");
-        msg.add_parameter("names", f_opts.get_string("watch"));
-        msg.add_parameter("cache", "no;reply");
+        // get the status of fluid-settings and if UP start listening to
+        // the given parameter(s) -- see the client::msg_status() func.
+        //
+        msg.set_command("SERVICESTATUS");
+        msg.add_parameter("service", "fluid_settings");
         f_client->send_message(msg);
     }
     else
@@ -381,6 +383,36 @@ void cli::ready()
             << "no command found."
             << SNAP_LOG_SEND;
     }
+}
+
+
+void cli::fluid_settings_listen()
+{
+    // the names shold be separated by commas but we give the user the
+    // ability to write them between spaces
+    //
+    //   --watch msg1,msg2,msg3,...
+    //
+    // or
+    //
+    //   --watch msg1 msg2 msg3
+    //
+    // both formats can be mixed
+    //
+    std::size_t const max(f_opts.size("watch"));
+    std::string names(f_opts.get_string("watch"));
+    for(std::size_t idx(1); idx < max; ++idx)
+    {
+        names += ',';
+        names += f_opts.get_string("watch", idx);
+    }
+
+    ed::message msg;
+    msg.set_command("FLUID_SETTINGS_LISTEN");
+    msg.set_service("fluid_settings");
+    msg.add_parameter("names", names);
+    msg.add_parameter("cache", "no;reply");
+    f_client->send_message(msg);
 }
 
 

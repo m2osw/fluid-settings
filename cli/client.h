@@ -77,6 +77,7 @@ public:
     void                msg_failed(ed::message & msg);
     void                msg_options(ed::message & msg);
     void                msg_registered(ed::message & msg);
+    void                msg_status(ed::message & msg);
     void                msg_updated(ed::message & msg);
     void                msg_value(ed::message & msg);
     void                msg_value_updated(ed::message & msg);
