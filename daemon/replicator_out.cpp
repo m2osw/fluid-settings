@@ -54,19 +54,6 @@ namespace fluid_settings_daemon
 {
 
 
-namespace
-{
-
-ed::dispatcher<replicator_out>::dispatcher_match::vector_t const g_dispatcher_messages =
-{
-    {
-          "VALUE_CHANGED"
-        , &replicator_out::msg_value_changed
-    },
-};
-
-} // no name namespace
-
 
 
 replicator_out::replicator_out(
@@ -75,12 +62,15 @@ replicator_out::replicator_out(
     : tcp_client_permanent_message_connection(address)
     , f_server(s)
     , f_communicator(ed::communicator::instance())
-    , f_dispatcher(std::make_shared<ed::dispatcher<replicator_out>>(this, g_dispatcher_messages))
+    , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
     f_dispatcher->add_communicator_commands();
 #ifdef _DEBUG
     f_dispatcher->set_trace();
 #endif
+    f_dispatcher->add_matches({
+        DISPATCHER_MATCH("VALUE_CHANGED", &replicator_out::msg_value_changed),
+    });
 }
 
 

@@ -27,6 +27,7 @@ configure_file(
 )
 
 add_library(${PROJECT_NAME} SHARED
+    fluid_settings_connection.cpp
     settings.cpp
     value.cpp
     version.cpp
@@ -35,14 +36,18 @@ add_library(${PROJECT_NAME} SHARED
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${ADVGETOPT_INCLUDE_DIRS}
-        ${SNAPLOGGER_INCLUDE_DIRS}
+        ${COMMUNICATORD_INCLUDE_DIRS}
+        ${EVENTDISPATCHER_INCLUDE_DIRS}
         ${LIBADDR_INCLUDE_DIRS}
         ${LIBEXCEPT_INCLUDE_DIRS}
+        ${SNAPLOGGER_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}
     ${ADVGETOPT_LIBRARIES}
+    ${COMMUNICATORD_LIBRARIES}
     ${EVENTDISPATCHER_LIBRARIES}
+    ${LIBADDR_LIBRARIES}
     ${LIBEXCEPT_LIBRARIES}
     ${SNAPLOGGER_LIBRARIES}
 )

@@ -89,8 +89,8 @@ private:
     server *            f_server = nullptr;
     ed::communicator::pointer_t
                         f_communicator = ed::communicator::pointer_t();
-    ed::dispatcher<replicator_out>::pointer_t
-                        f_dispatcher = ed::dispatcher<replicator_out>::pointer_t();
+    ed::dispatcher::pointer_t
+                        f_dispatcher = ed::dispatcher::pointer_t();
     int                 f_errors = 0;
 };
 

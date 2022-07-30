@@ -68,13 +68,13 @@
 
 // snaplogger
 //
+#include    <snaplogger/message.h>
 #include    <snaplogger/options.h>
 
 
 // snapdev
 //
 #include    <snapdev/safe_variable.h>
-#include    <snapdev/string_replace_many.h>
 #include    <snapdev/tokenize_string.h>
 
 
@@ -392,7 +392,7 @@ bool server::listen(
     ss.f_service = service_name;
 
     bool result(true);
-    for(auto const & n : split_names)
+    for(auto & n : split_names)
     {
         if(f_listeners[n].insert(ss).second)
         {
@@ -424,7 +424,7 @@ bool server::forget(
     ss.f_service = service_name;
 
     bool result(true);
-    for(auto const & n : split_names)
+    for(auto & n : split_names)
     {
         auto it(f_listeners.find(n));
         if(it != f_listeners.end())
@@ -449,6 +449,14 @@ bool server::forget(
 std::string server::list_of_options()
 {
     return f_settings.list_of_options();
+}
+
+
+fluid_settings::get_result_t server::get_default_value(
+      std::string const & name
+    , std::string & value)
+{
+    return f_settings.get_default_value(name, value);
 }
 
 

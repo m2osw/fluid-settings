@@ -41,6 +41,11 @@
 #include    "cli.h"
 
 
+// fluid_settings
+//
+#include    <fluid-settings/fluid_settings_connection.h>
+
+
 // eventdispatcher
 //
 #include    <eventdispatcher/connection_with_send_message.h>
@@ -54,38 +59,35 @@ namespace fluid_settings_cli
 
 
 class client
-    : public ed::tcp_client_permanent_message_connection
+    : public fluid_settings::fluid_settings_connection
 {
 public:
-                        client(cli * parent, addr::addr const & address);
+                        client(cli * parent, advgetopt::getopt & opts);
                         client(client const &) = delete;
     virtual             ~client() override;
     client &            operator = (client const &) = delete;
 
-    // tcp_client_permanent_message_connection implementation
-    //
-    virtual void        process_connected() override;
-
     // connection_with_send_message implementation
     //
     virtual void        ready(ed::message & msg) override;
-    virtual void        msg_service_unavailable(ed::message & msg) override;
 
-    void                msg_default_value(ed::message & msg);
-    void                msg_deleted(ed::message & msg);
-    void                msg_error(ed::message & msg);
-    void                msg_failed(ed::message & msg);
-    void                msg_options(ed::message & msg);
-    void                msg_registered(ed::message & msg);
-    void                msg_status(ed::message & msg);
-    void                msg_updated(ed::message & msg);
-    void                msg_value(ed::message & msg);
-    void                msg_value_updated(ed::message & msg);
+    // fluid_settings_connection implementation
+    //
+    virtual void        fluid_failed(ed::message & msg) override;
+    virtual void        fluid_settings_changed(
+                              fluid_settings::fluid_settings_status_t status
+                            , std::string const & name
+                            , std::string const & value) override;
+    virtual void        fluid_settings_options(
+                              advgetopt::string_list_t const & options) override;
+    virtual void        service_status(
+                              std::string const & service
+                            , std::string const & status) override;
 
 private:
     cli *               f_parent = nullptr;
-    ed::dispatcher<client>::pointer_t
-                        f_dispatcher = ed::dispatcher<client>::pointer_t();
+    ed::dispatcher::pointer_t
+                        f_dispatcher = ed::dispatcher::pointer_t();
 };
 
 

@@ -79,6 +79,9 @@ public:
     bool                    load_definitions(
                                   std::string paths = std::string());
     std::string             list_of_options();
+    get_result_t            get_default_value(
+                                  std::string name
+                                , std::string & result);
     get_result_t            get_value(
                                   std::string name
                                 , std::string & value

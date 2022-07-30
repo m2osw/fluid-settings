@@ -241,6 +241,46 @@ std::string settings::list_of_options()
 }
 
 
+/** \brief Retrieved the default setting of the named value.
+ *
+ * This function searches for a value in the existing settings and return
+ * its default setting.
+ *
+ * On success, the function returns get_result_t::GET_RESULT_DEFAULT and
+ * sets the \p result variable to the default value.
+ *
+ * If the named setting does not have a default value, then the function
+ * returns get_result_t::GET_RESULT_NOT_SET.
+ *
+ * If the named value does not exist, then get_result_t::GET_RESULT_UNKNOWN
+ * is returned.
+ *
+ * \param[in] name  The name of the value to retrieve.
+ * \param[out] result  The variable where the default value gets saved.
+ *
+ * \return One of the get_result_t::GET_RESULT_... values.
+ */
+get_result_t settings::get_default_value(
+      std::string name
+    , std::string & result)
+{
+    std::replace(name.begin(), name.end(), '_', '-');
+    advgetopt::option_info::pointer_t o(f_opts->get_option(name));
+    if(o == nullptr)
+    {
+        return get_result_t::GET_RESULT_UNKNOWN;
+    }
+
+    if(o->has_default())
+    {
+        result = o->get_default();
+        return get_result_t::GET_RESULT_DEFAULT;
+    }
+
+    return get_result_t::GET_RESULT_NOT_SET;
+}
+
+
 /** \brief Retrieved the named value.
  *
  * This function searches for a value in the existing settings.

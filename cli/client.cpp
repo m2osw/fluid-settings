@@ -44,66 +44,21 @@ namespace fluid_settings_cli
 
 
 
-ed::dispatcher<client>::dispatcher_match::vector_t const g_dispatcher_messages =
-{
-    { // reply when the default value is being returned
-          "FLUID_SETTINGS_DEFAULT_VALUE"
-        , &client::msg_default_value
-    },
-    { // reply to DELETE
-          "FLUID_SETTINGS_DELETED"
-        , &client::msg_deleted
-    },
-    { // reply when an error was detected (i.e. wrong value name)
-          "FLUID_SETTINGS_ERROR"
-        , &client::msg_error
-    },
-    { // reply on failure
-          "FLUID_SETTINGS_FAILED"
-        , &client::msg_failed
-    },
-    { // reply to LIST
-          "FLUID_SETTINGS_OPTIONS"
-        , &client::msg_options
-    },
-    { // reply to LISTEN
-          "FLUID_SETTINGS_REGISTERED"
-        , &client::msg_registered
-    },
-    { // reply to PUT
-          "FLUID_SETTINGS_UPDATED"
-        , &client::msg_updated
-    },
-    { // reply to GET
-          "FLUID_SETTINGS_VALUE"
-        , &client::msg_value
-    },
-    { // reply to LISTEN
-          "FLUID_SETTINGS_VALUE_UPDATED"
-        , &client::msg_value_updated
-    },
-    { // reply to SERVICESTATUS and messages when the status changes
-          "STATUS"
-        , &client::msg_status
-    },
-};
-
-
-client::client(cli * parent, addr::addr const & address)
-    : tcp_client_permanent_message_connection(
-              address
-            , ed::mode_t::MODE_PLAIN
-            , ed::DEFAULT_PAUSE_BEFORE_RECONNECTING
-            , true
-            , get_our_service_name())
+client::client(cli * parent, advgetopt::getopt & opts)
+    : fluid_settings_connection(opts, get_our_service_name())
     , f_parent(parent)
-    , f_dispatcher(std::make_shared<ed::dispatcher<client>>(this, g_dispatcher_messages))
+    , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
-    f_dispatcher->add_communicator_commands();
 #ifdef _DEBUG
     f_dispatcher->set_trace();
+    f_dispatcher->set_show_matches();
 #endif
     set_dispatcher(f_dispatcher);
+
+    add_fluid_settings_commands();
+
+    // add the communicator commands last (it includes the "always match")
+    f_dispatcher->add_communicator_commands();
 }
 
 
@@ -112,22 +67,56 @@ client::~client()
 }
 
 
-void client::process_connected()
+void client::fluid_settings_changed(
+      fluid_settings::fluid_settings_status_t status
+    , std::string const & name
+    , std::string const & value)
 {
-    tcp_client_permanent_message_connection::process_connected();
-    register_service();
+    switch(status)
+    {
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_NEW_VALUE:
+        // after a SET (for the --watch capability)
+        f_parent->value_updated(name, value);
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_VALUE:
+        f_parent->value(name, value, false);
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_DEFAULT:
+        f_parent->value(name, value, true);
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_UNDEFINED:
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_DELETED:
+        f_parent->deleted();
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_UPDATED:
+        f_parent->updated();
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_REGISTERED:
+        f_parent->registered();
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_TIMEOUT:
+        f_parent->timeout();
+        break;
+
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_UNAVAILABLE:
+        f_parent->close();
+        break;
+
+    }
 }
 
 
-void client::msg_service_unavailable(ed::message & msg)
+void client::fluid_settings_options(advgetopt::string_list_t const & options)
 {
-    snapdev::NOT_USED(msg);
-
-    SNAP_LOG_ERROR
-        << "fluid_settings service is not currently available."
-        << SNAP_LOG_SEND;
-
-    f_parent->close();
+    f_parent->list(options);
 }
 
 
@@ -139,86 +128,28 @@ void client::ready(ed::message & msg)
 }
 
 
-void client::msg_default_value(ed::message & msg)
-{
-    f_parent->value(msg, true);
-}
-
-
-void client::msg_deleted(ed::message & msg)
-{
-    snapdev::NOT_USED(msg);
-
-    f_parent->deleted();
-}
-
-
-void client::msg_error(ed::message & msg)
-{
-    SNAP_LOG_ERROR
-        << "an error occurred: "
-        << msg.to_string()
-        << SNAP_LOG_SEND;
-
-    f_parent->close();
-}
-
-
-void client::msg_failed(ed::message & msg)
+void client::fluid_failed(ed::message & msg)
 {
     f_parent->failed(msg);
 }
 
 
-void client::msg_options(ed::message & msg)
+void client::service_status(
+      std::string const & service
+    , std::string const & status)
 {
-    f_parent->list(msg);
-}
-
-
-void client::msg_registered(ed::message & msg)
-{
-    snapdev::NOT_USED(msg);
-
-    f_parent->registered();
-}
-
-
-void client::msg_updated(ed::message & msg)
-{
-    snapdev::NOT_USED(msg);
-
-    f_parent->updated();
-}
-
-
-void client::msg_value(ed::message & msg)
-{
-    f_parent->value(msg, false);
-}
-
-
-void client::msg_value_updated(ed::message & msg)
-{
-    snapdev::NOT_USED(msg);
-
-    f_parent->value_updated(msg);
-}
-
-
-void client::msg_status(ed::message & msg)
-{
-    if(msg.has_parameter("status"))
+    if(service != "fluid_settings")
     {
-        if(msg.get_parameter("status") == "up")
-        {
-            std::cout << "fluid_settings service is up.\n";
-            f_parent->fluid_settings_listen();
-        }
-        else
-        {
-            std::cout << "fluid_settings service is down.\n";
-        }
+        return;
+    }
+
+    if(status == "up")
+    {
+        std::cout << "fluid_settings service is up.\n";
+    }
+    else
+    {
+        std::cout << "fluid_settings service is down.\n";
     }
 }
 

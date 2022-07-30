@@ -54,27 +54,14 @@ public:
 
     replicator_in &     operator = (replicator_in const &) = delete;
 
-    // ed::tcp_server_client_message_connection implementation
-    //virtual void        process_message(ed::message & msg) override;
-    //virtual bool        send_message(ed::message & msg, bool cache = false);
-
     void                msg_value_changed(ed::message & msg);
-
-    //void                send_status();
-    //virtual void        process_timeout() override;
-    //virtual void        process_error() override;
-    //virtual void        process_hup() override;
-    //virtual void        process_invalid() override;
-    //void                properly_named();
-    //addr::addr const &  get_address() const;
 
 private:
     server *            f_server = nullptr;
     ed::communicator::pointer_t
                         f_communicator = ed::communicator::pointer_t();
-    //addr::addr          f_address = addr::addr();
-    ed::dispatcher<replicator_in>::pointer_t
-                        f_dispatcher = ed::dispatcher<replicator_in>::pointer_t();
+    ed::dispatcher::pointer_t
+                        f_dispatcher = ed::dispatcher::pointer_t();
 };
 
 

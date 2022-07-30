@@ -75,6 +75,10 @@ public:
                                 , std::string & value
                                 , fluid_settings::priority_t priority
                                 , bool all);
+    fluid_settings::get_result_t
+                            get_default_value(
+                                  std::string const & name
+                                , std::string & value);
     fluid_settings::set_result_t
                             set_value(
                                   std::string const & name

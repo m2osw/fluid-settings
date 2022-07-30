@@ -23,7 +23,7 @@
  * This file is the declaration of the CLI class.
  *
  * Note that the CLI is a complete client that connects to the
- * snapcommunicator. That way we have full communication with
+ * communicator daemon. That way we have full communication with
  * the fluid-settings service.
  *
  * This also means that we depend on getting a reply from the
@@ -52,6 +52,10 @@ namespace fluid_settings_cli
 {
 
 
+class client;
+typedef std::shared_ptr<client>     client_pointer_t;
+
+
 class cli
 {
 public:
@@ -61,13 +65,19 @@ public:
 
     int                 run();
     void                ready();
+    void                setup_watches();
     void                fluid_settings_listen();
     void                deleted();
-    void                list(ed::message & msg);
+    void                list(advgetopt::string_list_t const & options);
     void                registered();
     void                updated();
-    void                value(ed::message & msg, bool is_default);
-    void                value_updated(ed::message & msg);
+    void                value(
+                              std::string const & name
+                            , std::string const & value
+                            , bool is_default);
+    void                value_updated(
+                              std::string const & name
+                            , std::string const & value);
     void                close();
     void                timeout();
     void                failed(ed::message & msg);
@@ -79,8 +89,7 @@ private:
     ed::communicator::pointer_t
                         f_communicator = ed::communicator::pointer_t();
     addr::addr          f_address = addr::addr();
-    ed::tcp_client_permanent_message_connection::pointer_t
-                        f_client = ed::tcp_client_permanent_message_connection::pointer_t();
+    client_pointer_t    f_client = client_pointer_t();
     ed::connection::pointer_t
                         f_timer = ed::connection::pointer_t();
     bool                f_success = false;

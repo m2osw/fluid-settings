@@ -59,59 +59,30 @@ namespace fluid_settings_daemon
 {
 
 
-namespace
-{
-
-ed::dispatcher<messenger>::dispatcher_match::vector_t const g_dispatcher_messages =
-{
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_CONNECTED")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_connected)
-    ),
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_DELETE")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_delete)
-    ),
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_FORGET")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_forget)
-    ),
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_GET")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_get)
-    ),
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_GOSSIP")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_gossip)
-    ),
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_LIST")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_list)
-    ),
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_LISTEN")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_listen)
-    ),
-    ed::dispatcher<messenger>::define_match(
-          ed::dispatcher<messenger>::Expression("FLUID_SETTINGS_PUT")
-        , ed::dispatcher<messenger>::Execute(&messenger::msg_put)
-    ),
-};
-
-} // no name namespace
-
 
 
 messenger::messenger(server * s, advgetopt::getopt & opts)
     : communicator(opts, "fluid_settings")
     , f_server(s)
-    , f_dispatcher(std::make_shared<ed::dispatcher<messenger>>(this, g_dispatcher_messages))
+    , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
-    f_dispatcher->add_communicator_commands();
 #ifdef _DEBUG
     f_dispatcher->set_trace();
 #endif
     set_dispatcher(f_dispatcher);
+
+    f_dispatcher->add_matches({
+        DISPATCHER_MATCH("FLUID_SETTINGS_CONNECTED", &messenger::msg_connected),
+        DISPATCHER_MATCH("FLUID_SETTINGS_DELETE",    &messenger::msg_delete),
+        DISPATCHER_MATCH("FLUID_SETTINGS_FORGET",    &messenger::msg_forget),
+        DISPATCHER_MATCH("FLUID_SETTINGS_GET",       &messenger::msg_get),
+        DISPATCHER_MATCH("FLUID_SETTINGS_GOSSIP",    &messenger::msg_gossip),
+        DISPATCHER_MATCH("FLUID_SETTINGS_LIST",      &messenger::msg_list),
+        DISPATCHER_MATCH("FLUID_SETTINGS_LISTEN",    &messenger::msg_listen),
+        DISPATCHER_MATCH("FLUID_SETTINGS_PUT",       &messenger::msg_put),
+    });
+
+    f_dispatcher->add_communicator_commands();
 }
 
 
@@ -195,7 +166,8 @@ void messenger::msg_delete(ed::message & msg)
         }
     }
 
-    std::string const name(msg.get_parameter("name"));
+    std::string name(msg.get_parameter("name"));
+    std::replace(name.begin(), name.end(), '_', '-');
     if(f_server->reset_setting(name, priority))
     {
         reply.set_command("FLUID_SETTINGS_DELETED");
@@ -240,7 +212,8 @@ void messenger::msg_forget(ed::message & msg)
         return;
     }
 
-    std::string const names(msg.get_parameter("names"));
+    std::string names(msg.get_parameter("names"));
+    std::replace(names.begin(), names.end(), '_', '-');
     if(f_server->forget(server, service, names))
     {
         reply.set_command("FLUID_SETTINGS_FORGET");
@@ -297,19 +270,28 @@ void messenger::msg_get(ed::message & msg)
         return;
     }
 
+    int cmd(0);
+
+    bool default_value(false);
+    if(msg.has_parameter("default_value"))
+    {
+        default_value = advgetopt::is_true(msg.get_parameter("default_value"));
+
+        if(default_value)
+        {
+            ++cmd;
+        }
+    }
+
     bool all(false);
     if(msg.has_parameter("all"))
     {
-        if(msg.has_parameter("priority"))
-        {
-            reply.set_command("FLUID_SETTINGS_ERROR");
-            reply.add_parameter("error", "parameters \"all\" and \"priority\" are mutually exclusive");
-            reply.add_parameter("error_command", "FLUID_SETTINGS_GET");
-            send_message(reply);
-            return;
-        }
-
         all = advgetopt::is_true(msg.get_parameter("all"));
+
+        if(all)
+        {
+            ++cmd;
+        }
     }
 
     fluid_settings::priority_t priority(fluid_settings::HIGHEST_PRIORITY);
@@ -326,13 +308,32 @@ void messenger::msg_get(ed::message & msg)
         }
 
         priority = static_cast<fluid_settings::priority_t>(result);
+
+        if(priority != fluid_settings::HIGHEST_PRIORITY)
+        {
+            ++cmd;
+        }
     }
 
-    std::string const name(msg.get_parameter("name"));
+    if(cmd > 1)
+    {
+        reply.set_command("FLUID_SETTINGS_ERROR");
+        reply.add_parameter("error", "parameters \"default_value=true\", \"all=true\", and \"priority=...\" (when not HIGHEST_PRIORITY) are mutually exclusive.");
+        reply.add_parameter("error_command", "FLUID_SETTINGS_GET");
+        send_message(reply);
+        return;
+    }
+
+    std::string name(msg.get_parameter("name"));
+    std::replace(name.begin(), name.end(), '_', '-');
     reply.add_parameter("name", name);
 
     std::string value;
-    fluid_settings::get_result_t const r(f_server->get_value(name, value, priority, all));
+
+    fluid_settings::get_result_t const r(default_value
+                ? f_server->get_default_value(name, value)
+                : f_server->get_value(name, value, priority, all));
+
     switch(r)
     {
     case fluid_settings::get_result_t::GET_RESULT_SUCCESS:
@@ -472,7 +473,8 @@ void messenger::msg_listen(ed::message & msg)
         return;
     }
 
-    std::string const names(msg.get_parameter("names"));
+    std::string names(msg.get_parameter("names"));
+    std::replace(names.begin(), names.end(), '_', '-');
 
     reply.set_command("FLUID_SETTINGS_REGISTERED");
     if(f_server->listen(server, service, names))
@@ -555,7 +557,8 @@ void messenger::msg_put(ed::message & msg)
         return;
     }
 
-    std::string const name(msg.get_parameter("name"));
+    std::string name(msg.get_parameter("name"));
+    std::replace(name.begin(), name.end(), '_', '-');
     std::string const value(msg.get_parameter("value"));
     snapdev::timespec_ex timestamp;
     if(msg.has_parameter("timestamp"))

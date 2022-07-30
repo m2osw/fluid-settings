@@ -100,8 +100,8 @@ private:
     void                connect_from_gossip(ed::message & msg, bool send_reply);
 
     server *            f_server = nullptr;
-    ed::dispatcher<messenger>::pointer_t
-                        f_dispatcher = ed::dispatcher<messenger>::pointer_t();
+    ed::dispatcher::pointer_t
+                        f_dispatcher = ed::dispatcher::pointer_t();
 };
 
 

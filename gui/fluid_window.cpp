@@ -39,6 +39,7 @@
 
 // snaplogger
 //
+#include    <snaplogger/message.h>
 #include    <snaplogger/options.h>
 
 
