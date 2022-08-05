@@ -150,6 +150,8 @@ void client::service_status(
     else
     {
         std::cout << "fluid_settings service is down.\n";
+
+        f_parent->service_down();
     }
 }
 

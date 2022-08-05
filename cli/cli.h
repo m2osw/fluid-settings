@@ -81,6 +81,7 @@ public:
     void                close();
     void                timeout();
     void                failed(ed::message & msg);
+    void                service_down();
 
 private:
     bool                print_value(std::string const & value);

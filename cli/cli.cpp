@@ -181,6 +181,15 @@ advgetopt::option const g_options[] =
             , advgetopt::GETOPT_FLAG_MULTIPLE>())
         , advgetopt::Help("watch values until Ctrl-C is hit.")
     ),
+    advgetopt::define_option(
+          advgetopt::Name("watch-if-up")
+        , advgetopt::ShortName('W')
+        , advgetopt::Flags(advgetopt::all_flags<
+              advgetopt::GETOPT_FLAG_GROUP_COMMANDS
+            , advgetopt::GETOPT_FLAG_REQUIRED
+            , advgetopt::GETOPT_FLAG_MULTIPLE>())
+        , advgetopt::Help("watch values if the fluid-settings service is up until Ctrl-C is hit.")
+    ),
     advgetopt::end_options()
 };
 
@@ -302,6 +311,10 @@ cli::cli(int argc, char *argv[])
     {
         ++cmd;
     }
+    if(f_opts.is_defined("watch-if-up"))
+    {
+        ++cmd;
+    }
     if(cmd != 1)
     {
         SNAP_LOG_ERROR
@@ -381,8 +394,13 @@ void cli::ready()
         msg.add_parameter("cache", "no;reply");
         f_client->send_message(msg);
     }
-    else if(f_opts.is_defined("watch"))
+    else if(f_opts.is_defined("watch")
+         || f_opts.is_defined("watch-if-up"))
     {
+        if(f_opts.is_defined("watch"))
+        {
+            f_timer->set_enable(false);
+        }
         setup_watches();
 
         // get the status of fluid-settings and if UP start listening to
@@ -533,6 +551,17 @@ void cli::registered()
     // we are registered to watch for changes so we do not want to time out
     //
     f_timer->set_enable(false);
+}
+
+
+void cli::service_down()
+{
+    if(f_opts.is_defined("watch-if-up"))
+    {
+        // the service just went down, quit now
+        //
+        close();
+    }
 }
 
 
