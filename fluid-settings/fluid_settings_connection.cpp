@@ -141,9 +141,11 @@ private:
 
 /** \brief Initializes the fluid_settings_connection sub-class.
  *
- * This function makes sure the fluid-settings are going to work. However,
- * other functions need to be called in the right order to complete the
- * initialization process.
+ * This function makes sure the fluid-settings work seemlessly in your
+ * messenger client. However, other functions need to be called in the
+ * right order to properly complete the initialization process. This
+ * includes functions from the communicatord::communicator class which
+ * this class derive from.
  *
  * By default, the fluid_settings_connection listens to your advgetopt options that
  * were marked with this flag:
@@ -232,37 +234,155 @@ private:
  *             // exit on any error
  *             throw advgetopt::getopt_exit("logger options generated an error.", 1);
  *         }
+ *         f_messenger->automatic_watch_initialization();
  *         f_messenger->process_fluid_settings_options();
  *     }
  * \endcode
  *
- * \note
- * The fluid_settings_connection constructor accepts one advgetopt::getopt references.
- * That object includes a vector of advgetopt::option_info objects. Those
- * objects have flags, one of which is:
- * \code
- * advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION
- * \endcode
- * \note
- * The fluid_settings_connection will get that list and listen to those parameters.
- * Note that it is up to you to also mark such parameters as accessible
- * via the command line, the environment variables and configuration
- * files.
- * \note
- * There is no default dynamic configuration options, so you must make
- * sure that you mark those you want to listen on clearly. Note that
- * should correspond to those parameters defined under:
- * \code
- *     /var/share/fluid-settings/definitions/<name>.ini
- * \endcode
- * \note
- * The fluid-settings does not attempt to match the definitions with your
- * options until you try to get/set/listen to such values.
+ * The call to the automatic_watch_initialization() function allows for the
+ * options marked with the dynamic flag to be watched without you having to
+ * call the add_watch() directly. Note that function is in most cases
+ * expected to be caleld after the finish_parsing() function. This way the
+ * user can override the fluid-settings on the command line or their
+ * configuration file. At the same time, you may define some parameters as
+ * not available on the command line, environment variables, or configuration
+ * files so you can limit the overriding capabilities.
  *
- * \param[in] command_line_opts  The options on your command line.
- * \param[in] fluild_settings_opts  The options fluid-settings updates.
+ * Note that you can load the fluid-settings definition files to define the
+ * options found in your f_opts. This is quite practical since it means you
+ * do not have to define those parameters in two places. To do so, you can
+ * explicitly call the option parser:
+ *
+ * \code
+ * f_opts.parse_options_from_file(filename, 1, 1);
+ * \endcode
+ *
+ * or properly link your .ini file in the advgetopt share folder:
+ *
+ * \code
+ * /usr/share/advgetopt/options/<filename>.ini
+ * \endcode
+ *
+ * In most cases, you want to create a softlink from one to the other. We
+ * propose that you install your .ini files in the fluid installation
+ * directory:
+ *
+ * \code
+ * /usr/share/fluid-settings/definitions/<filename>.ini
+ * \endcode
+ *
+ * And then create a softlink in the advgetopt options directory. Then the
+ * file will automatically be loaded when the f_opts objects is initialized.
+ *
+ * \code
+ * /usr/share/advgetopt/options/<filename>.ini -> /usr/share/fluid-settings/definitions/<filename>.ini
+ * \endcode
+ *
+ * The dynamic configuration flag is no set automatically. The fluid-settings
+ * files do not require it (the files under
+ * `/usr/share/fluid-settings/definitions`) for the daemon to function as
+ * expected. However, for the automatic loading mechanism to work in clients,
+ * you want to make sure that it is specified in the `allowed=...` parameter
+ * like so:
+ *
+ * \code
+ * allowed=command-line,environment-variable,configuration-file,dynamic-configuration
+ * \endcode
+ *
+ * In this example, the flags allow parameters to appear on the command line,
+ * environment variables, configuration files, and in fluid-settings.
+ *
+ * It is possible to dynamically add watch lists. This is done by the
+ * sitter daemon because the sitter may support plugins which also have
+ * parameters that can be handled by the fluid-settings.
+ *
+ * Also, if you want to listen to parameters defined by other services, then
+ * your only way to listen to them is to add them dynamically:
+ *
+ * \code
+ * f_messenger->add_watch("firewall::uri");
+ * \endcode
+ *
+ * In many cases, the dynamic use of the f_opts each time you need the value
+ * is the best way to go, especially if you just need a string.
+ *
+ * \code
+ * std::string const param(f_opts.get_string("my-parameter"));
+ * ...use param as you see fit...
+ *
+ * -- or if the value has no default defined in the .ini --
+ *
+ * std::string param("some default");
+ * if(g_opts.is_defined("my-parameter"))
+ * {
+ *     param = f_opts.get_string("my-parameter");
+ * }
+ * ...use param as you see fit...
+ * \endcode
+ *
+ * However, if your parameter requires a complex parsing process first,
+ * then caching the data once parsed is a good idea. You can clear that
+ * cache when the value changes. To listen for changes, implement the
+ * fluid_settings_changed() function.
+ *
+ * \code
+ * void messenger::fluid_settings_changed(
+ *       fluid_settings::fluid_settings_status_t status
+ *     , std::string const & name
+ *     , std::string const & value)
+ * {
+ *     switch(status)
+ *     {
+ *     case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_NEW_VALUE:
+ *         ...do something here...
+ *         break;
+ *
+ *     default:
+ *         // ignore other statuses
+ *         break;
+ *
+ *     }
+ * }
+ * \endcode
+ *
+ * \note
+ * For a more complete example of the fluid_settings_changed() function,
+ * look at the cli/client.cpp file. All the statuses are handled in that
+ * one. Just keep in mind that in many cases you do not need this function.
+ *
+ * The fluid_settings_changed() function is also useful if the change has
+ * to be applied immediately and it would not otherwise happen for a while.
+ * This function is called immediately when a message is received. In
+ * other words, you can react very quickly to parameters changed by
+ * fluid-settings.
+ *
+ * The values are sent a first time when you first register with the
+ * fluid-settings daemon. They then get sent each time they get updated,
+ * which is most likelihood is a rare event in a production system. Note
+ * that this means you receive all the values some time later. That affects
+ * the way you want to initialize your daemons. For that purpose, the
+ * fluid_settings_connection has a special event which lets you know once
+ * all the watched values were received and thus when it is safe for your
+ * daemon to finish up its initialization.
+ *
+ * \note
+ * Note that you receive one message per parameter updated.
+ * This means you may wake up 10 times if 10 parameters are changed in a
+ * row. This will change in the future once we have the BEGIN + COMMIT
+ * feature implemented in fluid-settings. Until that change happens, you
+ * may want to consider using a "signal". Make sure you change the same
+ * set of parameters each time and the last one works as the trigger.
+ * \note
+ * For example, if you receive coordinates (x, y, z), you can react when
+ * the z parameter is updated and ignore the updates of x and y knowing
+ * that the update of the z parameter will arrive last once all three
+ * parameters are properly set.
+ *
+ * \param[in] opts  The options on your command line.
  * \param[in] service_name  Your service name to register with the communicator
  * daemon and receive replies from other services.
+ *
+ * \sa automatic_watch_initialization()
  */
 fluid_settings_connection::fluid_settings_connection(
           advgetopt::getopt & opts
@@ -271,8 +391,6 @@ fluid_settings_connection::fluid_settings_connection(
     , f_opts(opts)
 {
     f_opts.parse_options_info(g_options, true);
-
-    init_watches();
 }
 
 
@@ -281,12 +399,38 @@ fluid_settings_connection::~fluid_settings_connection()
 }
 
 
-void fluid_settings_connection::init_watches()
+/** \brief Automatically initialize the list of parameters to watch.
+ *
+ * This function goes through your list of watches as defined in your f_opts
+ * object and add them to this fluid settings connection.
+ *
+ * The process goes through the list of options found in the f_opts you
+ * supplied to the constructor and performs to checks on those options:
+ *
+ * \li Is the option already defined, if so, do not add it as a watch; this
+ * means options defined on the command line, in an environment variable,
+ * or a configuration file prior to calling this function are not going to
+ * be handled by the fluid-settings daemon
+ *
+ * \li The option is marked as a "dynamic-configuration" option. This is the
+ * way fluid-settings is authorized to add this option to the list of watches.
+ *
+ * If you call this function early on (in generally, before making the
+ * `f_opts.finish_parsing(argc, argv);` call), then the `is_defined()`
+ * flag will always be false meaning that the fluid-settings will take
+ * over if defined, whether the parameter was set on the command line or
+ * not. This is true even if the fluid-settings parameter only has a
+ * default value. If the fluid-settings has no default and is not currently
+ * set, then the command line, environment variable, or configuration file
+ * value will be kept.
+ */
+void fluid_settings_connection::automatic_watch_initialization()
 {
     advgetopt::option_info::map_by_name_t const & options(f_opts.get_options());
     for(auto const & o : options)
     {
-        if(o.second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION))
+        if(!o.second->is_defined()
+        && o.second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION))
         {
             add_watch(o.second->get_name());
         }
@@ -329,6 +473,7 @@ void fluid_settings_connection::add_fluid_settings_commands()
         DISPATCHER_MATCH("FLUID_SETTINGS_UPDATED",       &fluid_settings_connection::msg_fluid_updated),
         DISPATCHER_MATCH("FLUID_SETTINGS_VALUE",         &fluid_settings_connection::msg_fluid_value),
         DISPATCHER_MATCH("FLUID_SETTINGS_VALUE_UPDATED", &fluid_settings_connection::msg_fluid_value_updated),
+        DISPATCHER_MATCH("FLUID_SETTINGS_READY",         &fluid_settings_connection::msg_fluid_ready),
         DISPATCHER_MATCH("STATUS",                       &fluid_settings_connection::msg_fluid_status),
     });
 }
@@ -695,6 +840,25 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
 }
 
 
+void fluid_settings_connection::msg_fluid_ready(ed::message & msg)
+{
+    if(msg.has_parameter("error"))
+    {
+        fluid_settings_changed(
+              fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY
+            , std::string()
+            , msg.get_parameter("error"));
+    }
+    else
+    {
+        fluid_settings_changed(
+              fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY
+            , std::string()
+            , std::string());
+    }
+}
+
+
 void fluid_settings_connection::msg_fluid_status(ed::message & msg)
 {
     if(!msg.has_parameter("status")
@@ -709,7 +873,8 @@ void fluid_settings_connection::msg_fluid_status(ed::message & msg)
     if(service == "fluid_settings")
     {
         f_registered = status == "up";
-        if(f_registered)
+        if(f_registered
+        && !f_watches.empty())
         {
             listen(snapdev::join_strings(f_watches, ","));
         }
@@ -729,6 +894,19 @@ void fluid_settings_connection::listen(std::string const & watches)
     send_message(msg);
 }
 
+
+void fluid_settings_connection::ready(ed::message & msg)
+{
+    snapdev::NOT_USED(msg);
+
+    // get the status of fluid-settings and if UP start listening to
+    // the given parameter(s) -- see the client::msg_fluid_status() func.
+    //
+    ed::message reply;
+    reply.set_command("SERVICESTATUS");
+    reply.add_parameter("service", "fluid_settings");
+    send_message(reply);
+}
 
 
 } // fluid_settings namespace

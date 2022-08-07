@@ -487,6 +487,7 @@ void messenger::msg_listen(ed::message & msg)
     // updated although the message will clearly say that it is the current
     // value
     //
+    int errcnt(0);
     advgetopt::string_list_t split_names;
     advgetopt::split_string(names, split_names, { "," });
     for(auto const & n : split_names)
@@ -514,12 +515,14 @@ void messenger::msg_listen(ed::message & msg)
 
         case fluid_settings::get_result_t::GET_RESULT_NOT_SET:
             current_value.add_parameter("error", "not set");
+            ++errcnt;
             break;
 
         case fluid_settings::get_result_t::GET_RESULT_PRIORITY_NOT_FOUND:
             // this one should never happen since we use "highest"
             //
             current_value.add_parameter("error", "priority not found");
+            ++errcnt;
             break;
 
         case fluid_settings::get_result_t::GET_RESULT_ERROR:
@@ -527,6 +530,7 @@ void messenger::msg_listen(ed::message & msg)
                       "error", "found a parameter named \""
                     + n
                     + "\" but no corresponding value (logic error)");
+            ++errcnt;
             break;
 
         case fluid_settings::get_result_t::GET_RESULT_UNKNOWN:
@@ -534,11 +538,23 @@ void messenger::msg_listen(ed::message & msg)
                       "no parameter named \""
                     + n
                     + "\"");
+            ++errcnt;
             break;
 
         }
         send_message(current_value);
     }
+
+    // let caller know all values were sent
+    //
+    ed::message ready;
+    ready.reply_to(msg);
+    ready.set_command("FLUID_SETTINGS_READY");
+    if(errcnt > 0)
+    {
+        ready.add_parameter("errcnt", errcnt);
+    }
+    send_message(ready);
 }
 
 

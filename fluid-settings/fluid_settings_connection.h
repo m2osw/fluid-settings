@@ -86,6 +86,7 @@ enum class fluid_settings_status_t          // v v
     FLUID_SETTINGS_STATUS_TIMEOUT,          // - -   for an explicit command to "end" at some point
     FLUID_SETTINGS_STATUS_UNAVAILABLE,      // - -   the fluid-settings daemon is not available
     FLUID_SETTINGS_STATUS_REGISTERED,       // - -   LISTEN worked
+    FLUID_SETTINGS_STATUS_READY,            // - x   you received all the current values--if value is not empty, it represents an error
 };
 
 
@@ -101,6 +102,11 @@ public:
     fluid_settings_connection &
                         operator = (fluid_settings_connection const &) = delete;
 
+    // connection_with_send_message implementation
+    //
+    virtual void        ready(ed::message & msg) override;
+
+    void                automatic_watch_initialization();
     void                add_fluid_settings_commands();
     void                process_fluid_settings_options();
     void                unregister_fluid_settings(bool quitting);
@@ -138,11 +144,11 @@ public:
     void                msg_fluid_updated(ed::message & msg);
     void                msg_fluid_value(ed::message & msg);
     void                msg_fluid_value_updated(ed::message & msg);
+    void                msg_fluid_ready(ed::message & msg);
     void                msg_fluid_timeout();
 
 private:
     void                listen(std::string const & watches);
-    void                init_watches();
 
     advgetopt::getopt & f_opts;
     bool                f_registered = false;

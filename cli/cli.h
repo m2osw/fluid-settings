@@ -64,6 +64,7 @@ public:
                         cli(int argc, char * argv[]);
 
     int                 run();
+    void                fluid_ready();
     void                ready();
     void                setup_watches();
     void                fluid_settings_listen();

@@ -102,6 +102,10 @@ void client::fluid_settings_changed(
         f_parent->registered();
         break;
 
+    case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY:
+        f_parent->fluid_ready();
+        break;
+
     case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_TIMEOUT:
         f_parent->timeout();
         break;
@@ -125,6 +129,8 @@ void client::ready(ed::message & msg)
     snapdev::NOT_USED(msg);
 
     f_parent->ready();
+
+    fluid_settings_connection::ready(msg);
 }
 
 

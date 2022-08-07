@@ -35,7 +35,6 @@
  * connection can be properly managed by the CLI object.
  */
 
-
 // self
 //
 #include    "cli.h"
@@ -44,12 +43,6 @@
 // fluid_settings
 //
 #include    <fluid-settings/fluid_settings_connection.h>
-
-
-// eventdispatcher
-//
-#include    <eventdispatcher/connection_with_send_message.h>
-#include    <eventdispatcher/dispatcher.h>
 
 
 

@@ -78,6 +78,7 @@ install(
 install(
     FILES
         exception.h
+        fluid_settings_connection.h
         settings.h
         value.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.h

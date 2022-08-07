@@ -278,6 +278,11 @@ cli::cli(int argc, char *argv[])
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
     }
 
+    // initialize those after the finish_parsing() so command line defined
+    // parameter do not get overwritten by fluid-settings
+    //
+    f_client->automatic_watch_initialization();
+
     int cmd(0);
     if(f_opts.is_defined("delete"))
     {
@@ -344,6 +349,12 @@ int cli::run()
 }
 
 
+void cli::fluid_ready()
+{
+    std::cout << "fluid ready: all fields were received\n";
+}
+
+
 void cli::ready()
 {
     ed::message msg;
@@ -402,13 +413,6 @@ void cli::ready()
             f_timer->set_enable(false);
         }
         setup_watches();
-
-        // get the status of fluid-settings and if UP start listening to
-        // the given parameter(s) -- see the client::msg_status() func.
-        //
-        msg.set_command("SERVICESTATUS");
-        msg.add_parameter("service", "fluid_settings");
-        f_client->send_message(msg);
     }
     else
     {
