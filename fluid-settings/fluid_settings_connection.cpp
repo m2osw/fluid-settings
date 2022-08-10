@@ -825,10 +825,38 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
 
     if(msg.has_parameter("value"))
     {
+        // get the name and value from the message
+        //
+        std::string const & name(msg.get_parameter("name"));
+        std::string const & value(msg.get_parameter("value"));
+
+        // if the option exists in f_opts
+        //
+        std::string opt_name(name);
+        std::string const intro(service_name() + "::");
+        if(name.substr(0, intro.length()) == intro)
+        {
+            opt_name = name.substr(intro.length());
+        }
+        advgetopt::option_info::map_by_name_t const & options(f_opts.get_options());
+        auto const it(options.find(opt_name));
+        if(it != options.end()
+        && it->second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION))
+        {
+            // the option exists and it is a DYNAMIC option so update it
+            // automatically
+            //
+            f_opts.add_option_from_string(
+                  it->second
+                , value
+                , "--fluid-settings--"
+                , advgetopt::option_source_t::SOURCE_DYNAMIC);
+        }
+
         fluid_settings_changed(
               fluid_settings_status_t::FLUID_SETTINGS_STATUS_NEW_VALUE
-            , msg.get_parameter("name")
-            , msg.get_parameter("value"));
+            , name
+            , value);
     }
     else if(msg.has_parameter("error"))
     {
