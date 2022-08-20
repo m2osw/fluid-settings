@@ -596,6 +596,20 @@ std::string fluid_settings_connection::qualify_name(std::string const & name)
 }
 
 
+status_callback_id_t fluid_settings_connection::add_status_callback(status_callback_t callback)
+{
+    return f_status_callbacks.add_callback(callback);
+}
+
+
+void fluid_settings_connection::remove_status_callback(status_callback_id_t id)
+{
+    f_status_callbacks.remove_callback(id);
+}
+
+
+
+
 /** \brief The fluid-settings service is unavailable.
  *
  * Whenever we send a message, we may receive this message back. If the
@@ -909,6 +923,8 @@ void fluid_settings_connection::msg_fluid_status(ed::message & msg)
     }
 
     service_status(service, status);
+
+    f_status_callbacks.call(service, status);
 }
 
 

@@ -38,7 +38,7 @@
 
 // snapdev
 //
-#include    <snapdev/timespec_operations.h>
+#include    <snapdev/timespec_ex.h>
 
 
 // C++

@@ -69,6 +69,11 @@
 #include    <eventdispatcher/dispatcher.h>
 
 
+// snapdev
+//
+#include    <snapdev/callback_manager.h>
+
+
 
 namespace fluid_settings
 {                                           // message includes:
@@ -90,6 +95,12 @@ enum class fluid_settings_status_t          // v v
 };
 
 
+typedef std::function<bool(std::string const & service, std::string const & status)>
+                            status_callback_t;
+typedef snapdev::callback_manager<status_callback_t>::callback_id_t
+                            status_callback_id_t;
+
+
 class fluid_settings_connection
     : public communicatord::communicator
 {
@@ -101,10 +112,6 @@ public:
     virtual             ~fluid_settings_connection() override;
     fluid_settings_connection &
                         operator = (fluid_settings_connection const &) = delete;
-
-    // connection_with_send_message implementation
-    //
-    virtual void        ready(ed::message & msg) override;
 
     void                automatic_watch_initialization();
     void                add_fluid_settings_commands();
@@ -118,8 +125,13 @@ public:
     void                add_watch(std::string const & name);
     std::string         qualify_name(std::string const & name);
 
+    status_callback_id_t
+                        add_status_callback(status_callback_t callback);
+    void                remove_status_callback(status_callback_id_t callback);
+
     // connection_with_send_message implementation
     //
+    virtual void        ready(ed::message & msg) override;
     virtual void        msg_service_unavailable(ed::message & msg) override;
 
     // new callbacks
@@ -154,6 +166,8 @@ private:
     bool                f_registered = false;
     std::set<std::string>
                         f_watches = std::set<std::string>();
+    snapdev::callback_manager<status_callback_t>
+                        f_status_callbacks = snapdev::callback_manager<status_callback_t>();
 };
 
 
