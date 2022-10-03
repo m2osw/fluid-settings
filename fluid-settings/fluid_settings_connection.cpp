@@ -864,6 +864,7 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
                   it->second
                 , value
                 , "--fluid-settings--"
+                , advgetopt::string_list_t()
                 , advgetopt::option_source_t::SOURCE_DYNAMIC);
         }
 

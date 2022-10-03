@@ -435,6 +435,7 @@ set_result_t settings::set_value(
     o->set_value(
               0
             , new_value
+            , advgetopt::string_list_t()
             , advgetopt::option_source_t::SOURCE_DYNAMIC);
     if(!o->is_defined())
     {
