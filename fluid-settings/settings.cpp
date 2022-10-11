@@ -605,6 +605,7 @@ void settings::save(std::string const & filename)
                   m.first
                 , np
                 , tv
+                , advgetopt::assignment_t::ASSIGNMENT_NONE
                 , startup_comment);
             startup_comment.clear();
         }
