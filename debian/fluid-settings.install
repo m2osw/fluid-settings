@@ -5,4 +5,3 @@ usr/bin/install-fluid-settings-definitions
 conf/README.md                                     etc/fluid-settings/fluid-settings.d/
 conf/logger/fluid-settings-cli.conf                etc/fluid-settings/logger
 conf/logger/README.md                              etc/fluid-settings/logger/fluid-settings.d/
-conf/ipload/fluid-settingsd.conf                   usr/share/iplock/ipload/services
