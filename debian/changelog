@@ -1,3 +1,9 @@
+fluid-settings (1.0.1.1~bionic) bionic; urgency=high
+
+  * Moved the iplock/ipload file to iplock project to avoid the trigger cycle.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sun, 06 Nov 2022 20:35:50 -0800
+
 fluid-settings (1.0.1.0~bionic) bionic; urgency=high
 
   * First version of fluid-settings actually working.
