@@ -86,11 +86,12 @@ advgetopt::option const g_options[] =
             , advgetopt::GETOPT_FLAG_COMMAND_LINE
             , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
             , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
-            , advgetopt::GETOPT_FLAG_REQUIRED>())
+            , advgetopt::GETOPT_FLAG_REQUIRED
+            , advgetopt::GETOPT_FLAG_SHOW_SYSTEM>())
         , advgetopt::EnvironmentVariableName("FLUID_SETTINGS_TIMEOUT")
         , advgetopt::DefaultValue("10s")
         , advgetopt::Validator("duration")
-        , advgetopt::Help("define the communicator daemon connection type as a scheme (cd://, cdu://, cds://, cdb://) along an \"address:port\" or \"/socket/path\".")
+        , advgetopt::Help("How long it can take before we assume that fluid-settings is not available.")
     ),
 
     // END

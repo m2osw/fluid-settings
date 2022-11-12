@@ -1,3 +1,10 @@
+fluid-settings (1.0.2.0~bionic) bionic; urgency=high
+
+  * Made the fluid-settings option a system option.
+  * Fixed the fluid-settings option Help() message.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 12 Nov 2022 11:22:09 -0800
+
 fluid-settings (1.0.1.2~bionic) bionic; urgency=high
 
   * The .sysuser requires the use of the `--with sysuser` in debian/rules.
