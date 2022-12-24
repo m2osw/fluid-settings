@@ -10,4 +10,7 @@
   multiple values in an atomic manner; also that way we can avoid the save()
   call & `NEW_VALUE` events until we get the COMMIT
 * Implement the GUI
+* add necessary to have authentication
+  - some systems should only be given read access
+  - some systems should not be given any access
 

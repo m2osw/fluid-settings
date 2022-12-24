@@ -1,11 +1,12 @@
 
 # Introduction
 
-The Fluid Settings project is a three part environment:
+The Fluid Settings project, at times called `etcd`, is a three part
+environment:
 
 * A Daemon which manages the settings. We consider that there has to be one
   instance in your entire system, but for high availability and data
-  redundance, you can have more. They will auto-sync. each other.
+  redundancy, you can have more. They will auto-sync. each other.
 * A library to seemlessly use the settings; you can just write C++ code.
 * A command line, CUI, GUI set of tools, so it is possible to test and write
   scripts and also manually manipulate your settings.
