@@ -15,7 +15,7 @@ in which case the tool will not support that command line option.
 
 The generic logger settings are in files named `??-logger.conf`.
 
-The fluid tools settings are in a file that includes the tool's name.
+The fluid settings tools are in a file that includes the tool's name.
 The following are example:
 
     ??-fluid-settings.conf
