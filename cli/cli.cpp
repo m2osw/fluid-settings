@@ -39,6 +39,7 @@
 // fluid-settings
 //
 #include    "fluid-settings/exception.h"
+#include    "fluid-settings/names.h"
 #include    "fluid-settings/version.h"
 
 
@@ -46,6 +47,11 @@
 //
 #include    <libutf8/iterator.h>
 #include    <libutf8/libutf8.h>
+
+
+// communicatord
+//
+#include    <communicatord/names.h>
 
 
 // libaddr
@@ -360,49 +366,49 @@ void cli::ready()
     ed::message msg;
     if(f_opts.is_defined("delete"))
     {
-        msg.set_command("FLUID_SETTINGS_DELETE");
-        msg.set_service("fluid_settings");
-        msg.add_parameter("name", f_opts.get_string("delete"));
-        msg.add_parameter("cache", "no;reply");
+        msg.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_delete);
+        msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
+        msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("delete"));
+        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("get"))
     {
-        msg.set_command("FLUID_SETTINGS_GET");
-        msg.set_service("fluid_settings");
-        msg.add_parameter("name", f_opts.get_string("get"));
-        msg.add_parameter("cache", "no;reply");
+        msg.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+        msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
+        msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("get"));
+        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("get-default"))
     {
-        msg.set_command("FLUID_SETTINGS_GET");
-        msg.set_service("fluid_settings");
-        msg.add_parameter("name", f_opts.get_string("get-default"));
-        msg.add_parameter("default_value", "true");
-        msg.add_parameter("cache", "no;reply");
+        msg.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+        msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
+        msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("get-default"));
+        msg.add_parameter(fluid_settings::g_name_fluid_settings_param_default_value, "true");
+        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("list-all")
          || f_opts.is_defined("list-options")
          || f_opts.is_defined("list-services"))
     {
-        msg.set_command("FLUID_SETTINGS_LIST");
-        msg.set_service("fluid_settings");
+        msg.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_list);
+        msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
         if(f_opts.is_defined("list-options"))
         {
-            msg.add_parameter("name", f_opts.get_string("list-options"));
+            msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("list-options"));
         }
-        msg.add_parameter("cache", "no;reply");
+        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("set"))
     {
-        msg.set_command("FLUID_SETTINGS_PUT");
-        msg.set_service("fluid_settings");
-        msg.add_parameter("name", f_opts.get_string("set"));
-        msg.add_parameter("value", f_opts.get_string("set", 1));
-        msg.add_parameter("cache", "no;reply");
+        msg.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_put);
+        msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
+        msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("set"));
+        msg.add_parameter(fluid_settings::g_name_fluid_settings_param_value, f_opts.get_string("set", 1));
+        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("watch")
@@ -461,18 +467,18 @@ void cli::deleted()
 
 void cli::failed(ed::message & msg)
 {
-    if(msg.has_parameter("error_command"))
+    if(msg.has_parameter(fluid_settings::g_name_fluid_settings_param_error_command))
     {
         std::cerr
             << "command that generated the error: "
-            << msg.get_parameter("error_command")
+            << msg.get_parameter(fluid_settings::g_name_fluid_settings_param_error_command)
             << '\n';
     }
-    if(msg.has_parameter("error"))
+    if(msg.has_parameter(fluid_settings::g_name_fluid_settings_param_error))
     {
         std::cerr
             << "error message: "
-            << msg.get_parameter("error")
+            << msg.get_parameter(fluid_settings::g_name_fluid_settings_param_error)
             << '\n';
     }
 
@@ -496,7 +502,7 @@ void cli::list(advgetopt::string_list_t const & options)
         if(start_with.empty())
         {
             SNAP_LOG_ERROR
-                << "the --list-options command line option must specified a non-empty service name."
+                << "the --list-options command line option must specify a non-empty service name."
                 << SNAP_LOG_SEND;
         }
         else

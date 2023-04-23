@@ -41,6 +41,7 @@
 
 // fluid-settings
 //
+#include    <fluid-settings/names.h>
 #include    <fluid-settings/version.h>
 
 
@@ -52,6 +53,7 @@
 // communicatord
 //
 #include    <communicatord/communicatord.h>
+#include    <communicatord/names.h>
 
 
 // advgetopt
@@ -528,17 +530,17 @@ void server::value_changed(std::string const & name)
     for(auto const & s : f_listeners[name])
     {
         ed::message new_value;
-        new_value.set_command("FLUID_SETTINGS_VALUE_UPDATED");
-        new_value.add_parameter("name", name);
+        new_value.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_value_updated);
+        new_value.add_parameter(fluid_settings::g_name_fluid_settings_param_name, name);
         switch(result)
         {
         case fluid_settings::get_result_t::GET_RESULT_SUCCESS:
         case fluid_settings::get_result_t::GET_RESULT_DEFAULT:
-            new_value.add_parameter("value", value);
+            new_value.add_parameter(fluid_settings::g_name_fluid_settings_param_value, value);
             break;
 
         default:
-            new_value.add_parameter("message", "value undefined");
+            new_value.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "value undefined");
             break;
 
         }
@@ -563,9 +565,9 @@ void server::value_changed(std::string const & name)
     // next we want to tell the other fluid-settings that things changed
     //
     ed::message value_changed;
-    value_changed.set_command("VALUE_CHANGED");
-    value_changed.add_parameter("name", name);
-    value_changed.add_parameter("values", f_settings.serialize_value(name));
+    value_changed.set_command(fluid_settings::g_name_fluid_settings_cmd_value_changed);
+    value_changed.add_parameter(fluid_settings::g_name_fluid_settings_param_name, name);
+    value_changed.add_parameter(fluid_settings::g_name_fluid_settings_param_values, f_settings.serialize_value(name));
     ed::broadcast_message(f_replicators, value_changed, false);
 
     // old way...
@@ -612,10 +614,10 @@ void server::send_gossip()
     }
 
     ed::message gossip;
-    gossip.set_command("FLUID_SETTINGS_GOSSIP");
-    gossip.set_server("*");
-    gossip.set_service("fluid_settings");
-    gossip.add_parameter("my_ip", f_listener_address.to_ipv4or6_string(addr::STRING_IP_BRACKET_ADDRESS | addr::STRING_IP_PORT));
+    gossip.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_gossip);
+    gossip.set_server(communicatord::g_name_communicatord_server_any);
+    gossip.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
+    gossip.add_parameter(fluid_settings::g_name_fluid_settings_param_my_ip, f_listener_address.to_ipv4or6_string(addr::STRING_IP_BRACKET_ADDRESS | addr::STRING_IP_PORT));
     f_messenger->send_message(gossip);
 }
 
@@ -657,28 +659,28 @@ void server::remote_value_changed(
             << "VALUE_CHANGED message is missing a \"name\" and/or \"value\" parameter."
             << SNAP_LOG_SEND;
 
-        reply.set_command("FLUID_SETTINGS_ERROR");
-        reply.add_parameter("error", "parameter \"name\" or \"values\" missing in message");
-        reply.add_parameter("error_command", "VALUE_CHANGED");
+        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
+        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "parameter \"name\" or \"values\" missing in message");
+        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_value_changed);
         c->send_message(reply);
         return;
     }
 
-    std::string const name(msg.get_parameter("name"));
+    std::string const name(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_name));
     if(name.empty())
     {
         SNAP_LOG_ERROR
             << "invalid name found in VALUE_CHANGED message: it cannot be empty."
             << SNAP_LOG_SEND;
 
-        reply.set_command("FLUID_SETTINGS_ERROR");
-        reply.add_parameter("error", "parameter \"name\" cannot be empty");
-        reply.add_parameter("error_command", "VALUE_CHANGED");
+        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
+        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "parameter \"name\" cannot be empty");
+        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_value_changed);
         c->send_message(reply);
         return;
     }
 
-    std::string const values(msg.get_parameter("values"));
+    std::string const values(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_values));
 
     f_settings.unserialize_values(name, values);
 }

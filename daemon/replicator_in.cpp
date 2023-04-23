@@ -30,6 +30,11 @@
 #include    "replicator_in.h"
 
 
+// fluid-settings
+//
+#include    <fluid-settings/names.h>
+
+
 // last include
 //
 #include    <snapdev/poison.h>
@@ -96,7 +101,7 @@ replicator_in::replicator_in(
     , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
     f_dispatcher->add_matches({
-        DISPATCHER_MATCH("VALUE_CHANGED", &replicator_in::msg_value_changed),
+        DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_value_changed, &replicator_in::msg_value_changed),
     });
 }
 

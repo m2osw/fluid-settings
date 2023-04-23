@@ -30,6 +30,12 @@
 #include    "fluid-settings/fluid_settings_connection.h"
 
 #include    "fluid-settings/exception.h"
+#include    "fluid-settings/names.h"
+
+
+// communicatord
+//
+#include    <communicatord/names.h>
 
 
 // snaplogger
@@ -466,16 +472,17 @@ void fluid_settings_connection::add_fluid_settings_commands()
     // could be used for the purpose
     //
     d->add_matches({
-        DISPATCHER_MATCH("FLUID_SETTINGS_DEFAULT_VALUE", &fluid_settings_connection::msg_fluid_default_value),
-        DISPATCHER_MATCH("FLUID_SETTINGS_DELETED",       &fluid_settings_connection::msg_fluid_deleted),
-        DISPATCHER_MATCH("FLUID_SETTINGS_ERROR",         &fluid_settings_connection::msg_fluid_error),
-        DISPATCHER_MATCH("FLUID_SETTINGS_OPTIONS",       &fluid_settings_connection::msg_fluid_options),
-        DISPATCHER_MATCH("FLUID_SETTINGS_REGISTERED",    &fluid_settings_connection::msg_fluid_registered),
-        DISPATCHER_MATCH("FLUID_SETTINGS_UPDATED",       &fluid_settings_connection::msg_fluid_updated),
-        DISPATCHER_MATCH("FLUID_SETTINGS_VALUE",         &fluid_settings_connection::msg_fluid_value),
-        DISPATCHER_MATCH("FLUID_SETTINGS_VALUE_UPDATED", &fluid_settings_connection::msg_fluid_value_updated),
-        DISPATCHER_MATCH("FLUID_SETTINGS_READY",         &fluid_settings_connection::msg_fluid_ready),
-        DISPATCHER_MATCH("STATUS",                       &fluid_settings_connection::msg_fluid_status),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_default_value, &fluid_settings_connection::msg_fluid_default_value),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_deleted,       &fluid_settings_connection::msg_fluid_deleted),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_error,         &fluid_settings_connection::msg_fluid_error),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_options,       &fluid_settings_connection::msg_fluid_options),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_registered,    &fluid_settings_connection::msg_fluid_registered),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_updated,       &fluid_settings_connection::msg_fluid_updated),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_value,         &fluid_settings_connection::msg_fluid_value),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_value_updated, &fluid_settings_connection::msg_fluid_value_updated),
+        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_ready,         &fluid_settings_connection::msg_fluid_ready),
+
+        DISPATCHER_MATCH(communicatord::g_name_communicatord_cmd_status,         &fluid_settings_connection::msg_fluid_status),
     });
 }
 
@@ -524,10 +531,10 @@ void fluid_settings_connection::unregister_fluid_settings(bool quitting)
 void fluid_settings_connection::get_settings_value(std::string const & name)
 {
     ed::message msg;
-    msg.set_command("FLUID_SETTINGS_GET");
-    msg.set_service("fluid_settings");
-    msg.add_parameter("name", qualify_name(name));
-    msg.add_parameter("cache", "no;reply");
+    msg.set_command(g_name_fluid_settings_cmd_fluid_settings_get);
+    msg.set_service(g_name_fluid_settings_service_fluid_settings);
+    msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
+    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
 }
 
@@ -535,11 +542,11 @@ void fluid_settings_connection::get_settings_value(std::string const & name)
 void fluid_settings_connection::get_settings_all_values(std::string const & name)
 {
     ed::message msg;
-    msg.set_command("FLUID_SETTINGS_GET");
-    msg.set_service("fluid_settings");
-    msg.add_parameter("name", qualify_name(name));
-    msg.add_parameter("all", "true");
-    msg.add_parameter("cache", "no;reply");
+    msg.set_command(g_name_fluid_settings_cmd_fluid_settings_get);
+    msg.set_service(g_name_fluid_settings_service_fluid_settings);
+    msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
+    msg.add_parameter(g_name_fluid_settings_param_all, g_name_fluid_settings_value_true);
+    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
 }
 
@@ -547,11 +554,11 @@ void fluid_settings_connection::get_settings_all_values(std::string const & name
 void fluid_settings_connection::get_settings_value_with_priority(std::string const & name, priority_t priority)
 {
     ed::message msg;
-    msg.set_command("FLUID_SETTINGS_GET");
-    msg.set_service("fluid_settings");
-    msg.add_parameter("name", qualify_name(name));
-    msg.add_parameter("priority", priority);
-    msg.add_parameter("cache", "no;reply");
+    msg.set_command(g_name_fluid_settings_cmd_fluid_settings_get);
+    msg.set_service(g_name_fluid_settings_service_fluid_settings);
+    msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
+    msg.add_parameter(g_name_fluid_settings_param_priority, priority);
+    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
 }
 
@@ -559,11 +566,11 @@ void fluid_settings_connection::get_settings_value_with_priority(std::string con
 void fluid_settings_connection::get_settings_default_value(std::string const & name)
 {
     ed::message msg;
-    msg.set_command("FLUID_SETTINGS_GET");
-    msg.set_service("fluid_settings");
-    msg.add_parameter("name", qualify_name(name));
-    msg.add_parameter("default_value", "true");
-    msg.add_parameter("cache", "no;reply");
+    msg.set_command(g_name_fluid_settings_cmd_fluid_settings_get);
+    msg.set_service(g_name_fluid_settings_service_fluid_settings);
+    msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
+    msg.add_parameter(g_name_fluid_settings_param_default_value, g_name_fluid_settings_value_true);
+    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
 }
 
@@ -642,15 +649,15 @@ void fluid_settings_connection::msg_service_unavailable(ed::message & msg)
 {
     communicator::msg_service_unavailable(msg);
 
-    if(!msg.has_parameter("destination_service"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_destination_service))
     {
         return;
     }
 
     // are we concerned about this message?
     //
-    std::string const service(msg.get_parameter("destination_service"));
-    if(service != "fluid_settings")
+    std::string const service(msg.get_parameter(g_name_fluid_settings_param_destination_service));
+    if(service != g_name_fluid_settings_service_fluid_settings)
     {
         return;
     }
@@ -706,35 +713,41 @@ void fluid_settings_connection::fluid_settings_options(advgetopt::string_list_t 
  */
 void fluid_settings_connection::msg_fluid_default_value(ed::message & msg)
 {
-    if(!msg.has_parameter("name")
-    || !msg.has_parameter("value"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_name)
+    || !msg.has_parameter(g_name_fluid_settings_param_value))
     {
         SNAP_LOG_ERROR
-            << "reply to GET command did not include a \"name\" or a \"value\" parameter."
+            << "reply to GET command did not include a \""
+            << g_name_fluid_settings_param_name
+            << "\" or a \""
+            << g_name_fluid_settings_param_value
+            << "\" parameter."
             << SNAP_LOG_SEND;
         return;
     }
 
     fluid_settings_changed(
           fluid_settings_status_t::FLUID_SETTINGS_STATUS_DEFAULT
-        , msg.get_parameter("name")
-        , msg.get_parameter("value"));
+        , msg.get_parameter(g_name_fluid_settings_param_name)
+        , msg.get_parameter(g_name_fluid_settings_param_value));
 }
 
 
 void fluid_settings_connection::msg_fluid_deleted(ed::message & msg)
 {
-    if(!msg.has_parameter("name"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_name))
     {
         SNAP_LOG_ERROR
-            << "reply to DELETE command did not include a \"name\" parameter."
+            << "reply to DELETE command did not include a \""
+            << g_name_fluid_settings_param_name
+            << "\" parameter."
             << SNAP_LOG_SEND;
         return;
     }
 
     fluid_settings_changed(
           fluid_settings_status_t::FLUID_SETTINGS_STATUS_DELETED
-        , msg.get_parameter("name")
+        , msg.get_parameter(g_name_fluid_settings_param_name)
         , std::string());
 }
 
@@ -760,16 +773,20 @@ void fluid_settings_connection::fluid_failed(ed::message & msg)
 
 void fluid_settings_connection::msg_fluid_options(ed::message & msg)
 {
-    if(!msg.has_parameter("options"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_options))
     {
         SNAP_LOG_ERROR
-            << "reply to FLUID_SETTINGS_LIST command did not include an \"options\" parameter."
+            << "reply to "
+            << g_name_fluid_settings_cmd_fluid_settings_list
+            << " command did not include an \""
+            << g_name_fluid_settings_param_options
+            << "\" parameter."
             << SNAP_LOG_SEND;
         return;
     }
 
     advgetopt::string_list_t options;
-    advgetopt::split_string(msg.get_parameter("options"), options, {","});
+    advgetopt::split_string(msg.get_parameter(g_name_fluid_settings_param_options), options, {","});
 
     fluid_settings_options(options);
 }
@@ -777,7 +794,7 @@ void fluid_settings_connection::msg_fluid_options(ed::message & msg)
 
 void fluid_settings_connection::msg_fluid_registered(ed::message & msg)
 {
-    if(msg.has_parameter("message"))
+    if(msg.has_parameter(g_name_fluid_settings_param_message))
     {
         SNAP_LOG_WARNING
             << "registration of this listener generated a warning: \""
@@ -795,55 +812,63 @@ void fluid_settings_connection::msg_fluid_registered(ed::message & msg)
 
 void fluid_settings_connection::msg_fluid_updated(ed::message & msg)
 {
-    if(!msg.has_parameter("name"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_name))
     {
         SNAP_LOG_ERROR
-            << "reply to SET command did not include a \"name\" parameter."
+            << "reply to SET command did not include a \""
+            << g_name_fluid_settings_param_name
+            << "\" parameter."
             << SNAP_LOG_SEND;
         return;
     }
 
     fluid_settings_changed(
           fluid_settings_status_t::FLUID_SETTINGS_STATUS_UPDATED
-        , msg.get_parameter("name")
+        , msg.get_parameter(g_name_fluid_settings_param_name)
         , std::string());
 }
 
 
 void fluid_settings_connection::msg_fluid_value(ed::message & msg)
 {
-    if(!msg.has_parameter("name")
-    || !msg.has_parameter("value"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_name)
+    || !msg.has_parameter(g_name_fluid_settings_param_value))
     {
         SNAP_LOG_ERROR
-            << "reply to GET command did not include a \"name\" or a \"value\" parameter."
+            << "reply to GET command did not include a \""
+            << g_name_fluid_settings_param_name
+            << "\" or a \""
+            << g_name_fluid_settings_param_value
+            << "\" parameter."
             << SNAP_LOG_SEND;
         return;
     }
 
     fluid_settings_changed(
           fluid_settings_status_t::FLUID_SETTINGS_STATUS_VALUE
-        , msg.get_parameter("name")
-        , msg.get_parameter("value"));
+        , msg.get_parameter(g_name_fluid_settings_param_name)
+        , msg.get_parameter(g_name_fluid_settings_param_value));
 }
 
 
 void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
 {
-    if(!msg.has_parameter("name"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_name))
     {
         SNAP_LOG_ERROR
-            << "reply to GET command did not include a \"name\" parameter."
+            << "reply to GET command did not include a \""
+            << g_name_fluid_settings_param_name
+            << "\" parameter."
             << SNAP_LOG_SEND;
         return;
     }
 
-    if(msg.has_parameter("value"))
+    if(msg.has_parameter(g_name_fluid_settings_param_value))
     {
         // get the name and value from the message
         //
-        std::string const & name(msg.get_parameter("name"));
-        std::string const & value(msg.get_parameter("value"));
+        std::string const & name(msg.get_parameter(g_name_fluid_settings_param_name));
+        std::string const & value(msg.get_parameter(g_name_fluid_settings_param_value));
 
         // if the option exists in f_opts
         //
@@ -874,11 +899,11 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
             , name
             , value);
     }
-    else if(msg.has_parameter("error"))
+    else if(msg.has_parameter(g_name_fluid_settings_param_error))
     {
         fluid_settings_changed(
               fluid_settings_status_t::FLUID_SETTINGS_STATUS_UNDEFINED
-            , msg.get_parameter("name")
+            , msg.get_parameter(g_name_fluid_settings_param_name)
             , std::string());
     }
 }
@@ -886,12 +911,12 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
 
 void fluid_settings_connection::msg_fluid_ready(ed::message & msg)
 {
-    if(msg.has_parameter("error"))
+    if(msg.has_parameter(g_name_fluid_settings_param_error))
     {
         fluid_settings_changed(
               fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY
             , std::string()
-            , msg.get_parameter("error"));
+            , msg.get_parameter(g_name_fluid_settings_param_error));
     }
     else
     {
@@ -905,18 +930,18 @@ void fluid_settings_connection::msg_fluid_ready(ed::message & msg)
 
 void fluid_settings_connection::msg_fluid_status(ed::message & msg)
 {
-    if(!msg.has_parameter("status")
-    || !msg.has_parameter("service"))
+    if(!msg.has_parameter(g_name_fluid_settings_param_status)
+    || !msg.has_parameter(g_name_fluid_settings_param_service))
     {
         return;
     }
 
-    std::string const service(msg.get_parameter("service"));
-    std::string const status(msg.get_parameter("status"));
+    std::string const service(msg.get_parameter(g_name_fluid_settings_param_service));
+    std::string const status(msg.get_parameter(g_name_fluid_settings_param_status));
 
-    if(service == "fluid_settings")
+    if(service == g_name_fluid_settings_service_fluid_settings)
     {
-        f_registered = status == "up";
+        f_registered = status == g_name_fluid_settings_value_up;
         if(f_registered
         && !f_watches.empty())
         {
@@ -933,10 +958,10 @@ void fluid_settings_connection::msg_fluid_status(ed::message & msg)
 void fluid_settings_connection::listen(std::string const & watches)
 {
     ed::message msg;
-    msg.set_command("FLUID_SETTINGS_LISTEN");
-    msg.set_service("fluid_settings");
-    msg.add_parameter("names", watches);
-    msg.add_parameter("cache", "no;reply");
+    msg.set_command(g_name_fluid_settings_cmd_fluid_settings_listen);
+    msg.set_service(g_name_fluid_settings_service_fluid_settings);
+    msg.add_parameter(g_name_fluid_settings_param_names, watches);
+    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
 }
 
@@ -949,8 +974,8 @@ void fluid_settings_connection::ready(ed::message & msg)
     // the given parameter(s) -- see the client::msg_fluid_status() func.
     //
     ed::message reply;
-    reply.set_command("SERVICESTATUS");
-    reply.add_parameter("service", "fluid_settings");
+    reply.set_command(communicatord::g_name_communicatord_cmd_service_status);
+    reply.add_parameter(communicatord::g_name_communicatord_param_service, g_name_fluid_settings_service_fluid_settings);
     send_message(reply);
 }
 

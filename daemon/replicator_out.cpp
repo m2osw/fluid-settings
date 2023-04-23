@@ -33,15 +33,9 @@
 #include    "replicator_out.h"
 
 
-// advgetopt
+// fluid-settings
 //
-//#include    <advgetopt/validator_double.h>
-//#include    <advgetopt/validator_integer.h>
-
-
-// boost
-//
-//#include    <boost/preprocessor/stringize.hpp>
+#include    <fluid-settings/names.h>
 
 
 // last include
@@ -69,7 +63,7 @@ replicator_out::replicator_out(
     f_dispatcher->set_trace();
 #endif
     f_dispatcher->add_matches({
-        DISPATCHER_MATCH("VALUE_CHANGED", &replicator_out::msg_value_changed),
+        DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_value_changed, &replicator_out::msg_value_changed),
     });
 }
 

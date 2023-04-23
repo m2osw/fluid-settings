@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+AtomicNames(names.an)
+
 ##
 ## fluid settings library
 ##
@@ -28,6 +30,7 @@ configure_file(
 
 add_library(${PROJECT_NAME} SHARED
     fluid_settings_connection.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/names.cpp
     settings.cpp
     value.cpp
     version.cpp
@@ -79,6 +82,7 @@ install(
     FILES
         exception.h
         fluid_settings_connection.h
+        ${CMAKE_CURRENT_BINARY_DIR}/names.h
         settings.h
         value.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.h
