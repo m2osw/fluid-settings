@@ -1,4 +1,4 @@
-fluid-settings (1.0.2.0~bionic) bionic; urgency=high
+fluid-settings (1.0.2.0~jammy) jammy; urgency=high
 
   * Made the fluid-settings option a system option.
   * Fixed the fluid-settings option Help() message.
