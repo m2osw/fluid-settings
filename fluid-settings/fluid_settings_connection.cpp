@@ -241,19 +241,19 @@ private:
  *             // exit on any error
  *             throw advgetopt::getopt_exit("logger options generated an error.", 1);
  *         }
- *         f_messenger->automatic_watch_initialization();
  *         f_messenger->process_fluid_settings_options();
+ *         f_messenger->automatic_watch_initialization();
  *     }
  * \endcode
  *
  * The call to the automatic_watch_initialization() function allows for the
  * options marked with the dynamic flag to be watched without you having to
  * call the add_watch() directly. Note that function is in most cases
- * expected to be caleld after the finish_parsing() function. This way the
- * user can override the fluid-settings on the command line or their
- * configuration file. At the same time, you may define some parameters as
- * not available on the command line, environment variables, or configuration
- * files so you can limit the overriding capabilities.
+ * expected to be called after the process_fluid_settings_options() function.
+ * This way the user can override the fluid-settings options on the command
+ * line or their configuration file. At the same time, you may define some
+ * parameters as not available on the command line, environment variables,
+ * or configuration files so you can limit the overriding capabilities.
  *
  * Note that you can load the fluid-settings definition files to define the
  * options found in your f_opts. This is quite practical since it means you
