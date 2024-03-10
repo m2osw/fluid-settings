@@ -105,6 +105,8 @@ class fluid_settings_connection
     : public communicatord::communicator
 {
 public:
+    typedef std::shared_ptr<fluid_settings_connection> pointer_t;
+
                         fluid_settings_connection(
                               advgetopt::getopt & opts
                             , std::string const & service_name);
