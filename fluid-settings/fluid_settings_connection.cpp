@@ -482,7 +482,12 @@ void fluid_settings_connection::add_fluid_settings_commands()
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_value_updated, &fluid_settings_connection::msg_fluid_value_updated),
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_ready,         &fluid_settings_connection::msg_fluid_ready),
 
-        DISPATCHER_MATCH(communicatord::g_name_communicatord_cmd_status,         &fluid_settings_connection::msg_fluid_status),
+        ed::define_match(
+              ed::Expression(communicatord::g_name_communicatord_cmd_status)
+            , ed::Callback(std::bind(&fluid_settings_connection::msg_status, this, std::placeholders::_1))
+            , ed::MatchFunc(&ed::one_to_one_callback_match)
+            , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
+        ),
     });
 }
 
@@ -928,16 +933,16 @@ void fluid_settings_connection::msg_fluid_ready(ed::message & msg)
 }
 
 
-void fluid_settings_connection::msg_fluid_status(ed::message & msg)
+void fluid_settings_connection::msg_status(ed::message & msg)
 {
-    if(!msg.has_parameter(g_name_fluid_settings_param_status)
-    || !msg.has_parameter(g_name_fluid_settings_param_service))
+    if(!msg.has_parameter(communicatord::g_name_communicatord_param_status)
+    || !msg.has_parameter(communicatord::g_name_communicatord_param_service))
     {
         return;
     }
 
-    std::string const service(msg.get_parameter(g_name_fluid_settings_param_service));
-    std::string const status(msg.get_parameter(g_name_fluid_settings_param_status));
+    std::string const status(msg.get_parameter(communicatord::g_name_communicatord_param_status));
+    std::string const service(msg.get_parameter(communicatord::g_name_communicatord_param_service));
 
     if(service == g_name_fluid_settings_service_fluid_settings)
     {
@@ -971,7 +976,7 @@ void fluid_settings_connection::ready(ed::message & msg)
     snapdev::NOT_USED(msg);
 
     // get the status of fluid-settings and if UP start listening to
-    // the given parameter(s) -- see the client::msg_fluid_status() func.
+    // the given parameter(s) -- see the client::msg_status() function
     //
     ed::message reply;
     reply.set_command(communicatord::g_name_communicatord_cmd_service_status);

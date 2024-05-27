@@ -154,12 +154,13 @@ public:
     void                msg_fluid_error(ed::message & msg);
     void                msg_fluid_options(ed::message & msg);
     void                msg_fluid_registered(ed::message & msg);
-    void                msg_fluid_status(ed::message & msg);
     void                msg_fluid_updated(ed::message & msg);
     void                msg_fluid_value(ed::message & msg);
     void                msg_fluid_value_updated(ed::message & msg);
     void                msg_fluid_ready(ed::message & msg);
     void                msg_fluid_timeout();
+
+    void                msg_status(ed::message & msg);
 
 private:
     void                listen(std::string const & watches);
