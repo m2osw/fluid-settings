@@ -29,17 +29,6 @@
 #include    "gossip_timer.h"
 
 
-//// advgetopt
-////
-//#include    <advgetopt/validator_double.h>
-//#include    <advgetopt/validator_integer.h>
-//
-//
-//// boost
-////
-//#include    <boost/preprocessor/stringize.hpp>
-
-
 // last include
 //
 #include    <snapdev/poison.h>

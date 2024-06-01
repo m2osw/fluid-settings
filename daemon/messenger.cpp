@@ -38,6 +38,11 @@
 #include    <fluid-settings/names.h>
 
 
+// eventdispatcher
+//
+#include    <eventdispatcher/names.h>
+
+
 // communicatord
 //
 #include    <communicatord/names.h>
@@ -52,11 +57,6 @@
 // libaddr
 //
 #include    <libaddr/addr_parser.h>
-
-
-// boost
-//
-#include    <boost/preprocessor/stringize.hpp>
 
 
 // last include
@@ -146,19 +146,6 @@ void messenger::msg_delete(ed::message & msg)
     ed::message reply;
     reply.reply_to(msg);
 
-    if(!msg.has_parameter(fluid_settings::g_name_fluid_settings_param_name))
-    {
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error
-                , std::string("parameter \"")
-                + fluid_settings::g_name_fluid_settings_param_name
-                + "\" missing in message");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_delete);
-        send_message(reply);
-        return;
-    }
-
     int priority(fluid_settings::ADMINISTRATOR_PRIORITY);
     if(msg.has_parameter(fluid_settings::g_name_fluid_settings_param_priority))
     {
@@ -166,17 +153,19 @@ void messenger::msg_delete(ed::message & msg)
         if(priority < fluid_settings::MINIMUM_PRIORITY
         || priority > fluid_settings::MAXIMUM_PRIORITY)
         {
-            reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
+            reply.set_command(ed::g_name_ed_cmd_invalid);
             reply.add_parameter(
-                      fluid_settings::g_name_fluid_settings_param_error
+                      ed::g_name_ed_param_command
+                    , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_delete);
+            reply.add_parameter(
+                      ed::g_name_ed_param_message
                     , std::string("parameter \"")
                     + fluid_settings::g_name_fluid_settings_param_priority
                     + "\" is out of range ("
-                      BOOST_PP_STRINGIZE(fluid_settings::MINIMUM_PRIORITY)
-                      " .. "
-                      BOOST_PP_STRINGIZE(fluid_settings::MAXIMUM_PRIORITY)
-                      ")");
-            reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_delete);
+                    + std::to_string(fluid_settings::MINIMUM_PRIORITY)
+                    + " .. "
+                    + std::to_string(fluid_settings::MAXIMUM_PRIORITY)
+                    + ")");
             send_message(reply);
             return;
         }
@@ -197,7 +186,7 @@ void messenger::msg_delete(ed::message & msg)
         //
         reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_deleted);
         reply.add_parameter(fluid_settings::g_name_fluid_settings_param_name, name);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "nothing was deleted");
+        reply.add_parameter(ed::g_name_ed_param_message, "nothing was deleted");
         send_message(reply);
     }
 }
@@ -218,18 +207,15 @@ void messenger::msg_forget(ed::message & msg)
     std::string const service(msg.get_service());
 
     if(server.empty()
-    || service.empty()
-    || !msg.has_parameter(fluid_settings::g_name_fluid_settings_param_names))
+    || service.empty())
     {
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
+        reply.set_command(ed::g_name_ed_cmd_invalid);
         reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error
-                , std::string("parameter \"server\" or \"service\" or \"")
-                + fluid_settings::g_name_fluid_settings_param_names
-                + "\" missing in message");
-        reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error_command
+                  ed::g_name_ed_param_command
                 , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_forget);
+        reply.add_parameter(
+                  ed::g_name_ed_param_message
+                , std::string("parameter \"server\" or \"service\" missing in message."));
         send_message(reply);
         return;
     }
@@ -239,7 +225,7 @@ void messenger::msg_forget(ed::message & msg)
     if(f_server->forget(server, service, names))
     {
         reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_forget);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "not listening");
+        reply.add_parameter(ed::g_name_ed_param_message, "not listening");
         send_message(reply);
     }
     else
@@ -283,19 +269,6 @@ void messenger::msg_get(ed::message & msg)
     ed::message reply;
     reply.reply_to(msg);
 
-    if(!msg.has_parameter(fluid_settings::g_name_fluid_settings_param_name))
-    {
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error
-                , std::string("parameter \"")
-                + fluid_settings::g_name_fluid_settings_param_name
-                + "\" missing in message");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
-        send_message(reply);
-        return;
-    }
-
     int cmd(0);
 
     bool default_value(false);
@@ -324,9 +297,9 @@ void messenger::msg_get(ed::message & msg)
         std::int64_t result(0);
         if(!advgetopt::validator_integer::convert_string(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_priority), result))
         {
-            reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-            reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "parameter \"priority\" must be an integer when defined");
-            reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+            reply.set_command(ed::g_name_ed_cmd_invalid);
+            reply.add_parameter(ed::g_name_ed_param_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+            reply.add_parameter(ed::g_name_ed_param_message, "parameter \"priority\" must be an integer when defined");
             send_message(reply);
             return;
         }
@@ -341,9 +314,9 @@ void messenger::msg_get(ed::message & msg)
 
     if(cmd > 1)
     {
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "parameters \"default_value=true\", \"all=true\", and \"priority=...\" (when not HIGHEST_PRIORITY) are mutually exclusive.");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+        reply.set_command(ed::g_name_ed_cmd_invalid);
+        reply.add_parameter(ed::g_name_ed_param_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+        reply.add_parameter(ed::g_name_ed_param_message, "parameters \"default_value=true\", \"all=true\", and \"priority=...\" (when not HIGHEST_PRIORITY) are mutually exclusive.");
         send_message(reply);
         return;
     }
@@ -392,15 +365,21 @@ void messenger::msg_get(ed::message & msg)
         break;
 
     case fluid_settings::get_result_t::GET_RESULT_ERROR:
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "found a parameter named \"" + name + "\" but no corresponding value (logic error)");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_not_set);
+        reply.add_parameter(
+                  fluid_settings::g_name_fluid_settings_param_error
+                , "found a parameter named \""
+                + name
+                + "\" but no corresponding value (logic error)");
         break;
 
     case fluid_settings::get_result_t::GET_RESULT_UNKNOWN:
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "no parameter named \"" + name + "\"");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
+        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_not_set);
+        reply.add_parameter(
+                  fluid_settings::g_name_fluid_settings_param_error
+                , "no parameter named \""
+                + name
+                + "\"");
         break;
 
     }
@@ -419,15 +398,6 @@ void messenger::connect_from_gossip(ed::message & msg, bool send_reply)
     ed::message reply;
     reply.reply_to(msg);
 
-    if(!msg.has_parameter(fluid_settings::g_name_fluid_settings_param_my_ip))
-    {
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "parameter \"my_ip\" missing in message");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_fluid_settings_gossip);
-        send_message(reply);
-        return;
-    }
-
     std::string const their_ip(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_my_ip));
 
     addr::addr const a(f_server->get_listener_address());
@@ -441,11 +411,11 @@ void messenger::connect_from_gossip(ed::message & msg, bool send_reply)
     {
         f_server->connect_to_other_fluid_settings(b);
 
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "we sent you a connection request");
+        reply.add_parameter(ed::g_name_ed_param_message, "we sent you a connection request");
     }
     else
     {
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "you connect to us");
+        reply.add_parameter(ed::g_name_ed_param_message, "you connect to us");
     }
 
 
@@ -483,22 +453,19 @@ void messenger::msg_listen(ed::message & msg)
     std::string const service(msg.get_sent_from_service());
 
     if(server.empty()
-    || service.empty()
-    || !msg.has_parameter(fluid_settings::g_name_fluid_settings_param_names))
+    || service.empty())
     {
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
+        reply.set_command(ed::g_name_ed_cmd_invalid);
         reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error
+                  ed::g_name_ed_param_command
+                , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_listen);
+        reply.add_parameter(
+                  ed::g_name_ed_param_message
                 , "parameter \"server\" ("
                 + server
                 + ") or \"service\" ("
                 + service
-                + ") are empty or parameter \"names\" ("
-                + (msg.has_parameter("names") ? msg.get_parameter("names") : std::string())
-                + ") is missing in message");
-        reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error_command
-                , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_listen);
+                + ") are empty.");
         send_message(reply);
         return;
     }
@@ -509,7 +476,7 @@ void messenger::msg_listen(ed::message & msg)
     reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_registered);
     if(f_server->listen(server, service, names))
     {
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "already registered");
+        reply.add_parameter(ed::g_name_ed_param_message, "already registered");
     }
     send_message(reply);
 
@@ -540,7 +507,7 @@ void messenger::msg_listen(ed::message & msg)
             [[fallthrough]];
         case fluid_settings::get_result_t::GET_RESULT_SUCCESS:
             current_value.add_parameter(fluid_settings::g_name_fluid_settings_param_value, value);
-            current_value.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "current value");
+            current_value.add_parameter(ed::g_name_ed_param_message, "current value");
             break;
 
         case fluid_settings::get_result_t::GET_RESULT_NOT_SET:
@@ -595,24 +562,6 @@ void messenger::msg_put(ed::message & msg)
     ed::message reply;
     reply.reply_to(msg);
 
-    if(!msg.has_parameter(fluid_settings::g_name_fluid_settings_param_name)
-    || !msg.has_parameter(fluid_settings::g_name_fluid_settings_param_value))
-    {
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error
-                , std::string("parameter \"")
-                + fluid_settings::g_name_fluid_settings_param_name
-                + "\" or \""
-                + fluid_settings::g_name_fluid_settings_param_value
-                + "\" missing in message");
-        reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error_command
-                , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_put);
-        send_message(reply);
-        return;
-    }
-
     std::string name(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_name));
     std::replace(name.begin(), name.end(), '_', '-');
     std::string const value(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_value));
@@ -621,6 +570,7 @@ void messenger::msg_put(ed::message & msg)
     {
         std::string stamp(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_timestamp));
         double result(0.0);
+        // TODO: don't use a double, we have a constructor for that
         advgetopt::validator_double::convert_string(stamp, result);
         timestamp.set(result);
     }
@@ -633,17 +583,22 @@ void messenger::msg_put(ed::message & msg)
     if(msg.has_parameter(fluid_settings::g_name_fluid_settings_param_priority))
     {
         priority = msg.get_integer_parameter(fluid_settings::g_name_fluid_settings_param_priority);
-        if(priority < 0 || priority > 99)
+        if(priority < fluid_settings::MINIMUM_PRIORITY
+        || priority > fluid_settings::MAXIMUM_PRIORITY)
         {
-            reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
+            reply.set_command(ed::g_name_ed_cmd_invalid);
             reply.add_parameter(
-                      fluid_settings::g_name_fluid_settings_param_error
+                      ed::g_name_ed_param_command
+                    , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_put);
+            reply.add_parameter(
+                      ed::g_name_ed_param_message
                     , "parameter \"priority\" ("
                     + std::to_string(priority)
-                    + ") is out of range (0 .. 99)");
-            reply.add_parameter(
-                      fluid_settings::g_name_fluid_settings_param_error_command
-                    , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_put);
+                    + ") is out of range ("
+                    + std::to_string(fluid_settings::MINIMUM_PRIORITY)
+                    + " .. "
+                    + std::to_string(fluid_settings::MAXIMUM_PRIORITY)
+                    + ")");
             send_message(reply);
             return;
         }
@@ -693,19 +648,29 @@ void messenger::msg_put(ed::message & msg)
         break;
 
     case fluid_settings::set_result_t::SET_RESULT_ERROR: // value was refused by advgetopt
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "put named setting \"" + name + "\" to value \"" + value + "\" failed");
+        reply.set_command(ed::g_name_ed_cmd_invalid);
         reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error_command
+                  ed::g_name_ed_param_command
                 , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_put);
+        reply.add_parameter(
+                  ed::g_name_ed_param_message
+                , "put named setting \""
+                + name
+                + "\" to value \""
+                + value
+                + "\" failed");
         break;
 
     case fluid_settings::set_result_t::SET_RESULT_UNKNOWN: // no settings with that name found
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "no parameter named \"" + name + "\"");
+        reply.set_command(ed::g_name_ed_cmd_invalid);
         reply.add_parameter(
-                  fluid_settings::g_name_fluid_settings_param_error_command
+                  ed::g_name_ed_param_command
                 , fluid_settings::g_name_fluid_settings_cmd_fluid_settings_put);
+        reply.add_parameter(
+                  ed::g_name_ed_param_message
+                , "no parameter named \""
+                + name
+                + "\"");
         break;
 
     }

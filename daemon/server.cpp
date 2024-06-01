@@ -77,12 +77,8 @@
 // snapdev
 //
 #include    <snapdev/safe_variable.h>
+#include    <snapdev/stringize.h>
 #include    <snapdev/tokenize_string.h>
-
-
-// boost
-//
-#include    <boost/preprocessor/stringize.hpp>
 
 
 // C++
@@ -203,7 +199,7 @@ constexpr advgetopt::options_environment const g_options_environment =
     .f_version = FLUID_SETTINGS_VERSION_STRING,
     .f_license = "GNU GPL v3",
     .f_copyright = "Copyright (c) 2022-"
-                   BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
+                   SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
                    " by Made to Order Software Corporation -- All Rights Reserved",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
@@ -540,7 +536,7 @@ void server::value_changed(std::string const & name)
             break;
 
         default:
-            new_value.add_parameter(fluid_settings::g_name_fluid_settings_param_message, "value undefined");
+            new_value.add_parameter(fluid_settings::g_name_fluid_settings_param_reason, "value undefined");
             break;
 
         }
@@ -648,38 +644,11 @@ void server::remote_value_changed(
       ed::message const & msg
     , ed::connection_with_send_message::pointer_t const & c)
 {
+    snapdev::NOT_USED(c);
+
     snapdev::safe_variable<bool> safe(f_remote_change, true, false);
-    ed::message reply;
-    reply.reply_to(msg);
-
-    if(!msg.has_parameter("name")
-    || !msg.has_parameter("values"))
-    {
-        SNAP_LOG_ERROR
-            << "VALUE_CHANGED message is missing a \"name\" and/or \"value\" parameter."
-            << SNAP_LOG_SEND;
-
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "parameter \"name\" or \"values\" missing in message");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_value_changed);
-        c->send_message(reply);
-        return;
-    }
 
     std::string const name(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_name));
-    if(name.empty())
-    {
-        SNAP_LOG_ERROR
-            << "invalid name found in VALUE_CHANGED message: it cannot be empty."
-            << SNAP_LOG_SEND;
-
-        reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_error);
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error, "parameter \"name\" cannot be empty");
-        reply.add_parameter(fluid_settings::g_name_fluid_settings_param_error_command, fluid_settings::g_name_fluid_settings_cmd_value_changed);
-        c->send_message(reply);
-        return;
-    }
-
     std::string const values(msg.get_parameter(fluid_settings::g_name_fluid_settings_param_values));
 
     f_settings.unserialize_values(name, values);

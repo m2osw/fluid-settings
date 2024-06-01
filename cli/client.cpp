@@ -136,6 +136,10 @@ void client::ready(ed::message & msg)
 
 void client::fluid_failed(ed::message & msg)
 {
+    // call base class function
+    //
+    fluid_settings::fluid_settings_connection::fluid_failed(msg);
+
     f_parent->failed(msg);
 }
 

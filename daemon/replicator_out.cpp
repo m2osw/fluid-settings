@@ -131,8 +131,8 @@ void replicator_out::process_connected()
 void replicator_out::msg_value_changed(ed::message & msg)
 {
     f_server->remote_value_changed(
-              msg
-            , std::dynamic_pointer_cast<replicator_out>(shared_from_this()));
+          msg
+        , std::dynamic_pointer_cast<replicator_out>(shared_from_this()));
 }
 
 

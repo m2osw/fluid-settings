@@ -33,6 +33,11 @@
 #include    "fluid-settings/names.h"
 
 
+// eventdispatcher
+//
+#include    <eventdispatcher/names.h>
+
+
 // communicatord
 //
 #include    <communicatord/names.h>
@@ -178,7 +183,13 @@ private:
  * \li fluid_failed()
  *
  * An error occurs in the fluid-settings daemon; the event dispatcher
- * message includes a parameter called "message" with the error spelled out.
+ * message includes two parameters: "message" with the error spelled out
+ * (can be displayed to a human) and "command" which names the command
+ * in error. The message command itself may either be UNKNOWN, we send
+ * a command that the daemon does not know anything about or INVALID,
+ * in which case the daemon knows about the command, but it was not
+ * used properly (i.e. the parameters in the message sent were not
+ * considered valid).
  *
  * \li fluid_settings_options()
  *
@@ -474,7 +485,6 @@ void fluid_settings_connection::add_fluid_settings_commands()
     d->add_matches({
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_default_value, &fluid_settings_connection::msg_fluid_default_value),
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_deleted,       &fluid_settings_connection::msg_fluid_deleted),
-        DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_error,         &fluid_settings_connection::msg_fluid_error),
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_options,       &fluid_settings_connection::msg_fluid_options),
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_registered,    &fluid_settings_connection::msg_fluid_registered),
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_updated,       &fluid_settings_connection::msg_fluid_updated),
@@ -485,6 +495,18 @@ void fluid_settings_connection::add_fluid_settings_commands()
         ed::define_match(
               ed::Expression(communicatord::g_name_communicatord_cmd_status)
             , ed::Callback(std::bind(&fluid_settings_connection::msg_status, this, std::placeholders::_1))
+            , ed::MatchFunc(&ed::one_to_one_callback_match)
+            , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
+        ),
+        ed::define_match(
+              ed::Expression(ed::g_name_ed_cmd_invalid)
+            , ed::Callback(std::bind(&fluid_settings_connection::msg_fluid_error, this, std::placeholders::_1))
+            , ed::MatchFunc(&ed::one_to_one_callback_match)
+            , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
+        ),
+        ed::define_match(
+              ed::Expression(ed::g_name_ed_cmd_unknown)
+            , ed::Callback(std::bind(&fluid_settings_connection::msg_fluid_error, this, std::placeholders::_1))
             , ed::MatchFunc(&ed::one_to_one_callback_match)
             , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
         ),
@@ -760,7 +782,7 @@ void fluid_settings_connection::msg_fluid_deleted(ed::message & msg)
 void fluid_settings_connection::msg_fluid_error(ed::message & msg)
 {
     SNAP_LOG_ERROR
-        << "an error occurred in fluid-settings: "
+        << "an error occurred in the fluid-settings daemon: "
         << msg.to_string()
         << SNAP_LOG_SEND;
 
@@ -799,7 +821,7 @@ void fluid_settings_connection::msg_fluid_options(ed::message & msg)
 
 void fluid_settings_connection::msg_fluid_registered(ed::message & msg)
 {
-    if(msg.has_parameter(g_name_fluid_settings_param_message))
+    if(msg.has_parameter(ed::g_name_ed_param_message))
     {
         SNAP_LOG_WARNING
             << "registration of this listener generated a warning: \""

@@ -1,4 +1,4 @@
-# Copyright (c) 2011-2024  Made to Order Software Corp.  All Rights Reserved
+# Copyright (c) 2016-2024  Made to Order Software Corp.  All Rights Reserved
 #
 # https://snapwebsites.org/project/fluid-settings
 # contact@m2osw.com
@@ -16,31 +16,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-##
-## install-fluid-settings-definitions command line tool
-##
-project(install-fluid-settings-definitions)
 
-add_executable(${PROJECT_NAME}
-    install_fluid_settings_definitions.cpp
-)
+VerifyMessageDefinitions(${CMAKE_CURRENT_SOURCE_DIR})
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${ADVGETOPT_INCLUDE_DIRS}
-)
-
-target_link_libraries(${PROJECT_NAME}
-    fluid-settings
-)
+project(fluid_settings_message_definitions)
 
 install(
-    TARGETS
-        ${PROJECT_NAME}
+    DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/
 
-    RUNTIME DESTINATION
-        bin
+    DESTINATION
+        ${EVENTDISPATCHER_SHARE_MESSAGE_DEFINITIONS_CONF_DIR}
+
+    FILES_MATCHING PATTERN
+        "*.conf"
 )
-
 
 # vim: ts=4 sw=4 et

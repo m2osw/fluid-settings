@@ -49,6 +49,11 @@
 #include    <libutf8/libutf8.h>
 
 
+// eventdispatcher
+//
+#include    <eventdispatcher/names.h>
+
+
 // communicatord
 //
 #include    <communicatord/names.h>
@@ -76,9 +81,9 @@
 #include    <eventdispatcher/dispatcher.h>
 
 
-// boost
+// snapdev
 //
-#include    <boost/preprocessor/stringize.hpp>
+#include    <snapdev/stringize.h>
 
 
 // last include
@@ -244,7 +249,7 @@ constexpr advgetopt::options_environment const g_options_environment =
     .f_version = FLUID_SETTINGS_VERSION_STRING,
     .f_license = "GNU GPL v3",
     .f_copyright = "Copyright (c) 2022-"
-                   BOOST_PP_STRINGIZE(UTC_BUILD_YEAR)
+                   SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
                    " by Made to Order Software Corporation -- All Rights Reserved",
     .f_build_date = UTC_BUILD_DATE,
     .f_build_time = UTC_BUILD_TIME,
@@ -467,18 +472,18 @@ void cli::deleted()
 
 void cli::failed(ed::message & msg)
 {
-    if(msg.has_parameter(fluid_settings::g_name_fluid_settings_param_error_command))
+    if(msg.has_parameter(ed::g_name_ed_param_command))
     {
         std::cerr
             << "command that generated the error: "
-            << msg.get_parameter(fluid_settings::g_name_fluid_settings_param_error_command)
+            << msg.get_parameter(ed::g_name_ed_param_command)
             << '\n';
     }
-    if(msg.has_parameter(fluid_settings::g_name_fluid_settings_param_error))
+    if(msg.has_parameter(ed::g_name_ed_param_message))
     {
         std::cerr
             << "error message: "
-            << msg.get_parameter(fluid_settings::g_name_fluid_settings_param_error)
+            << msg.get_parameter(ed::g_name_ed_param_message)
             << '\n';
     }
 
