@@ -52,7 +52,7 @@
 
 // communicatord
 //
-#include    <communicatord/communicatord.h>
+#include    <communicatord/communicator.h>
 #include    <communicatord/names.h>
 
 
