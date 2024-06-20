@@ -48,6 +48,5 @@ value_reason_new=new
 value_reason_newer=newer
 value_reason_new_priority=new priority
 value_reason_unchanged=unchanged
-value_up=up
 
 # vim: syntax=dosini

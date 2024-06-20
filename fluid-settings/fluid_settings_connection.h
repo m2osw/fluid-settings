@@ -127,10 +127,6 @@ public:
     void                add_watch(std::string const & name);
     std::string         qualify_name(std::string const & name);
 
-    status_callback_id_t
-                        add_status_callback(status_callback_t callback);
-    void                remove_status_callback(status_callback_id_t callback);
-
     // connection_with_send_message implementation
     //
     virtual void        ready(ed::message & msg) override;
@@ -169,8 +165,6 @@ private:
     bool                f_registered = false;
     std::set<std::string>
                         f_watches = std::set<std::string>();
-    snapdev::callback_manager<status_callback_t>
-                        f_status_callbacks = snapdev::callback_manager<status_callback_t>();
 };
 
 

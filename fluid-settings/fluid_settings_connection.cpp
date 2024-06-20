@@ -631,18 +631,6 @@ std::string fluid_settings_connection::qualify_name(std::string const & name)
 }
 
 
-status_callback_id_t fluid_settings_connection::add_status_callback(status_callback_t callback)
-{
-    return f_status_callbacks.add_callback(callback);
-}
-
-
-void fluid_settings_connection::remove_status_callback(status_callback_id_t id)
-{
-    f_status_callbacks.remove_callback(id);
-}
-
-
 
 
 /** \brief The fluid-settings service is unavailable.
@@ -716,7 +704,8 @@ void fluid_settings_connection::fluid_settings_changed(fluid_settings_status_t s
     snapdev::NOT_USED(status, name, value);
 
     // do nothing, we call this function from all the others handling the
-    // fluid-settings messages
+    // fluid-settings messages and give a chance to the user messenger to
+    // override this function
 }
 
 
@@ -968,17 +957,29 @@ void fluid_settings_connection::msg_status(ed::message & msg)
 
     if(service == g_name_fluid_settings_service_fluid_settings)
     {
-        f_registered = status == g_name_fluid_settings_value_up;
-        if(f_registered
-        && !f_watches.empty())
+        f_registered = status == communicatord::g_name_communicatord_value_up;
+        if(f_registered)
         {
-            listen(snapdev::join_strings(f_watches, ","));
+            if(f_watches.empty())
+            {
+                // if there are no parameters to watch, we're ready now
+                // (i.e. all the parameters may have been specified on
+                // the command line or a .conf file in which case it does
+                // not become dynamic fluid settings)
+                //
+                fluid_settings_changed(
+                      fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY
+                    , std::string()
+                    , std::string());
+            }
+            else
+            {
+                listen(snapdev::join_strings(f_watches, ","));
+            }
         }
     }
 
     service_status(service, status);
-
-    f_status_callbacks.call(service, status);
 }
 
 
