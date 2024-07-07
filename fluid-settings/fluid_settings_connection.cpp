@@ -1005,6 +1005,11 @@ void fluid_settings_connection::ready(ed::message & msg)
     reply.set_command(communicatord::g_name_communicatord_cmd_service_status);
     reply.add_parameter(communicatord::g_name_communicatord_param_service, g_name_fluid_settings_service_fluid_settings);
     send_message(reply);
+
+    // the ready() function is not overridden in the communicator class
+    // so the following would call the default which generates a warning
+    //
+    //communicator::ready(msg);
 }
 
 
