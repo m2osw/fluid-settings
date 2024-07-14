@@ -35,7 +35,6 @@
 // eventdispatcher
 //
 #include    <eventdispatcher/communicator.h>
-#include    <eventdispatcher/logrotate_udp_messenger.h>
 #include    <eventdispatcher/qt_connection.h>
 
 
