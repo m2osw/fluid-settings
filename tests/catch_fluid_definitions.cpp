@@ -34,8 +34,9 @@
 
 CATCH_TEST_CASE("definitions", "[definition]")
 {
-    CATCH_START_SECTION("Attempt loading test settings")
+    CATCH_START_SECTION("definitions: attempt loading test settings")
     {
+        CATCH_REQUIRE(true);
     }
     CATCH_END_SECTION()
 }

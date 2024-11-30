@@ -33,9 +33,9 @@
 
 
 
-CATCH_TEST_CASE("Version", "[version]")
+CATCH_TEST_CASE("version", "[version]")
 {
-    CATCH_START_SECTION("verify runtime vs compile time eventdispatcher version numbers")
+    CATCH_START_SECTION("version: verify runtime vs compile time eventdispatcher version numbers")
     {
         CATCH_REQUIRE(fluid_settings::get_major_version()   == FLUID_SETTINGS_VERSION_MAJOR);
         CATCH_REQUIRE(fluid_settings::get_release_version() == FLUID_SETTINGS_VERSION_MINOR);
