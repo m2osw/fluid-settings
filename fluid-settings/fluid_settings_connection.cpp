@@ -478,9 +478,8 @@ void fluid_settings_connection::add_fluid_settings_commands()
         throw fluid_settings_implementation_error("your fluid settings messenger is missing its dispatcher");
     }
 
-    // our own have to make use of dynamic std::function() through std::bind()
-    // because the dispatcher does not directly link to use or something that
-    // could be used for the purpose
+    // for some messages, we have to make use of a dynamic std::function()
+    // with std::bind() because we need to use the callback priority
     //
     d->add_matches({
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_default_value, &fluid_settings_connection::msg_fluid_default_value),
