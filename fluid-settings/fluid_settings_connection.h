@@ -119,6 +119,7 @@ public:
     void                add_fluid_settings_commands();
     void                process_fluid_settings_options();
     void                unregister_fluid_settings(bool quitting);
+    bool                is_registered() const;
 
     void                get_settings_value(std::string const & name);
     void                get_settings_all_values(std::string const & name);

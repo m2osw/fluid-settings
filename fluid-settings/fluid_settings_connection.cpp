@@ -539,6 +539,12 @@ void fluid_settings_connection::unregister_fluid_settings(bool quitting)
 }
 
 
+bool fluid_settings_connection::is_registered() const
+{
+    return f_registered;
+}
+
+
 /** \brief Request for the value of a specific setting.
  *
  * This function sends a message to the fluid-settings to request for
@@ -603,7 +609,7 @@ void fluid_settings_connection::get_settings_default_value(std::string const & n
 
 void fluid_settings_connection::add_watch(std::string const & name)
 {
-    std::string watch(qualify_name(name));
+    std::string const watch(qualify_name(name));
 
     auto const result(f_watches.insert(watch));
     if(result.second
