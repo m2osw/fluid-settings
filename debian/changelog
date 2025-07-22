@@ -1,3 +1,13 @@
+fluid-settings (1.0.3.1~noble) bionic; urgency=high
+
+  * Cleaned up usage of LOG_ROTATE.
+  * Updated callbacks.
+  * Added message definitions.
+  * Removed dependency on boost.
+  * Various clean ups.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Mon, 21 Jul 2025 18:27:17 -0700
+
 fluid-settings (1.0.3.1~bionic) bionic; urgency=high
 
   * Bumped build version to rebuild on Launchpad.
