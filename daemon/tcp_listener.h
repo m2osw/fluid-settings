@@ -25,7 +25,10 @@
  * library.
  *
  * The definitions are read from disk. They must be saved under
- * `/usr/share/eventdispatcher/fluid-settings/*.ini`.
+ * `/usr/share/eventdispatcher/fluid-settings/<project-name>.ini`.
+ *
+ * \todo
+ * Actually implement this? (maybe it's not necessary?)
  */
 
 
