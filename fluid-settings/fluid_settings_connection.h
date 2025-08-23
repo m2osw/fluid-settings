@@ -95,10 +95,10 @@ enum class fluid_settings_status_t          // v v
 };
 
 
-typedef std::function<bool(std::string const & service, std::string const & status)>
-                            status_callback_t;
-typedef snapdev::callback_manager<status_callback_t>::callback_id_t
-                            status_callback_id_t;
+//typedef std::function<bool(std::string const & service, std::string const & status)>
+//                            status_callback_t;
+//typedef snapdev::callback_manager<status_callback_t>::callback_id_t
+//                            status_callback_id_t;
 
 
 class fluid_settings_connection
