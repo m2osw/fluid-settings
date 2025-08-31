@@ -20,8 +20,11 @@
 ##
 ## Documentation
 ##
+project(fluid-settings-documentation)
+
 find_package(SnapDoxygen)
-AddDoxygenTarget(fluid-settings
+AddDoxygenTarget(
+    fluid-settings
     ${FLUID_SETTINGS_VERSION_MAJOR}
     ${FLUID_SETTINGS_VERSION_MINOR}
     ${FLUID_SETTINGS_VERSION_PATCH}
