@@ -119,7 +119,6 @@ private:
     fluid_settings::settings
                             f_settings = fluid_settings::settings();
     bool                    f_remote_change = false;
-    std::int64_t            f_gossip_timeout = 60;
     ed::connection::pointer_t
                             f_gossip_timer = ed::connection::pointer_t();
     int                     f_exit_code = 0;

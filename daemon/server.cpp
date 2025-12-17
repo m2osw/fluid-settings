@@ -325,17 +325,22 @@ bool server::prepare_save_timer()
 
 bool server::prepare_gossip_timer()
 {
-    f_gossip_timeout = f_opts.get_long("gossip-timeout");
-    if(f_gossip_timeout <= 0)
+    std::string const timeout(f_opts.get_string("gossip-timeout"));
+    double gossip_timeout(0.0);
+    advgetopt::validator_duration::convert_string(
+          timeout
+        , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+        , gossip_timeout);
+    if(gossip_timeout <= 0.0)
     {
         SNAP_LOG_FATAL
             << "the --gossip-timeout parameter must be a valid positive number (\""
-            << f_opts.get_string("gossip-timeout")
+            << timeout
             << "\" is invalid)."
             << SNAP_LOG_SEND;
         return false;
     }
-    f_gossip_timer = std::make_shared<gossip_timer>(this, f_gossip_timeout * 1'000);
+    f_gossip_timer = std::make_shared<gossip_timer>(this, static_cast<std::int64_t>(gossip_timeout * 1'000.0));
     f_communicator->add_connection(f_gossip_timer);
 
     return true;
