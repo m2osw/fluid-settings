@@ -38,6 +38,11 @@
 #include    <eventdispatcher/names.h>
 
 
+// advgetopt
+//
+#include    <advgetopt/validator_duration.h>
+
+
 // communicatord
 //
 #include    <communicatord/names.h>
@@ -122,11 +127,19 @@ class fluid_settings_timer
 public:
     typedef std::shared_ptr<fluid_settings_timer>      pointer_t;
 
-    fluid_settings_timer(fluid_settings_connection * fs, std::int64_t timeout_us)
+    fluid_settings_timer(
+              fluid_settings_connection * fs
+            , std::int64_t timeout_us
+            , std::string const & name)
         : timer(timeout_us)
         , f_fluid_settings(fs)
+        , f_name(name)
     {
     }
+
+    fluid_settings_timer(fluid_settings_timer const &) = delete;
+
+    fluid_settings_timer & operator = (fluid_settings_timer const &) = delete;
 
     virtual ~fluid_settings_timer() override
     {
@@ -137,11 +150,14 @@ public:
         f_fluid_settings->msg_fluid_timeout();
     }
 
-private:
-    fluid_settings_timer(fluid_settings_timer const &) = delete;
-    fluid_settings_timer & operator = (fluid_settings_timer const &) = delete;
+    std::string const & get_name() const
+    {
+        return f_name;
+    }
 
-    fluid_settings_connection *        f_fluid_settings = nullptr;
+private:
+    fluid_settings_connection * f_fluid_settings = nullptr;
+    std::string                 f_name = std::string();
 };
 
 
@@ -536,6 +552,7 @@ void fluid_settings_connection::process_fluid_settings_options()
 void fluid_settings_connection::unregister_fluid_settings(bool quitting)
 {
     communicator::unregister_communicator(quitting);
+    f_registered = false;
 }
 
 
@@ -568,6 +585,8 @@ void fluid_settings_connection::get_settings_value(std::string const & name)
     msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
     msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
+
+    start_timer(name);
 }
 
 
@@ -580,6 +599,8 @@ void fluid_settings_connection::get_settings_all_values(std::string const & name
     msg.add_parameter(g_name_fluid_settings_param_all, g_name_fluid_settings_value_true);
     msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
+
+    start_timer(name);
 }
 
 
@@ -592,6 +613,8 @@ void fluid_settings_connection::get_settings_value_with_priority(std::string con
     msg.add_parameter(g_name_fluid_settings_param_priority, priority);
     msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
+
+    start_timer(name);
 }
 
 
@@ -604,6 +627,40 @@ void fluid_settings_connection::get_settings_default_value(std::string const & n
     msg.add_parameter(g_name_fluid_settings_param_default_value, g_name_fluid_settings_value_true);
     msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
     send_message(msg);
+
+    start_timer(name);
+}
+
+
+void fluid_settings_connection::start_timer(std::string const & name)
+{
+    // timer is re-created each time and deleted when process_timeout()
+    // get called
+    //
+    std::string const & message_timeout(f_opts.get_string("fluid-settings-timeout"));
+    double timeout(0.0);
+    if(!advgetopt::validator_duration::convert_string(
+                  message_timeout
+                , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                , timeout))
+    {
+        // the default is 10 seconds
+        //
+        timeout = 10.0;
+    }
+    f_timer = std::make_shared<fluid_settings_timer>(this, static_cast<std::int64_t>(timeout * 1'000.0), name);
+    ed::communicator::instance()->add_connection(f_timer);
+}
+
+
+void fluid_settings_connection::stop_timer(std::string const & name)
+{
+    if(f_timer != nullptr
+    && f_timer->get_name() == name)
+    {
+        ed::communicator::instance()->remove_connection(f_timer);
+        f_timer.reset();
+    }
 }
 
 
@@ -706,11 +763,17 @@ void fluid_settings_connection::service_status(std::string const & service, std:
 
 void fluid_settings_connection::fluid_settings_changed(fluid_settings_status_t status, std::string const & name, std::string const & value)
 {
-    snapdev::NOT_USED(status, name, value);
+    snapdev::NOT_USED(status, value);
 
-    // do nothing, we call this function from all the others handling the
-    // fluid-settings messages and give a chance to the user messenger to
-    // override this function
+    // do nothing, we call this function from all the handlers used to manage
+    // the fluid-settings messages and give a chance to the user messenger to
+    // override this function also the base function should also be called to
+    // clear the timer
+
+    if(!name.empty())
+    {
+        stop_timer(name);
+    }
 }
 
 
@@ -944,6 +1007,22 @@ void fluid_settings_connection::msg_fluid_ready(ed::message & msg)
         fluid_settings_changed(
               fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY
             , std::string()
+            , std::string());
+    }
+}
+
+
+void fluid_settings_connection::msg_fluid_timeout()
+{
+    // this function is only supposed to be called by the timer whenever it
+    // times out (it's process_timeout() function gets called) so the
+    // f_timer pointer should never be null here
+    //
+    if(f_timer != nullptr)
+    {
+        fluid_settings_changed(
+              fluid_settings_status_t::FLUID_SETTINGS_STATUS_TIMEOUT
+            , f_timer->get_name()
             , std::string());
     }
 }

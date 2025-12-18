@@ -161,11 +161,15 @@ public:
 
 private:
     void                listen(std::string const & watches);
+    void                start_timer(std::string const & name);
+    void                stop_timer(std::string const & name);
 
     advgetopt::getopt & f_opts;
     bool                f_registered = false;
     std::set<std::string>
                         f_watches = std::set<std::string>();
+    ed::connection::pointer_t
+                        f_timer = ed::connection::pointer_t();
 };
 
 
