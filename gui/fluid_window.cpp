@@ -156,7 +156,7 @@ FluidWindow::FluidWindow(int argc, char * argv[], QApplication & app)
     {
         throw advgetopt::getopt_exit("invalid logger options", 1);
     }
-    process_communicatord_options();
+    process_communicator_options();
 
     setup_qt_connection();
 

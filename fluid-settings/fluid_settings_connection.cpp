@@ -43,9 +43,9 @@
 #include    <advgetopt/validator_duration.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/names.h>
+#include    <communicator/names.h>
 
 
 // snaplogger
@@ -508,7 +508,7 @@ void fluid_settings_connection::add_fluid_settings_commands()
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_ready,         &fluid_settings_connection::msg_fluid_ready),
 
         ed::define_match(
-              ed::Expression(communicatord::g_name_communicatord_cmd_status)
+              ed::Expression(::communicator::g_name_communicator_cmd_status)
             , ed::Callback(std::bind(&fluid_settings_connection::msg_status, this, std::placeholders::_1))
             , ed::MatchFunc(&ed::one_to_one_callback_match)
             , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
@@ -545,7 +545,7 @@ void fluid_settings_connection::process_fluid_settings_options()
 {
     // first make sure we process the communicator daemon options
     //
-    process_communicatord_options();
+    process_communicator_options();
 }
 
 
@@ -583,7 +583,7 @@ void fluid_settings_connection::get_settings_value(std::string const & name)
     msg.set_command(g_name_fluid_settings_cmd_fluid_settings_get);
     msg.set_service(g_name_fluid_settings_service_fluid_settings);
     msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
-    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+    msg.add_parameter(::communicator::g_name_communicator_param_cache, "no;reply");
     send_message(msg);
 
     start_timer(name);
@@ -597,7 +597,7 @@ void fluid_settings_connection::get_settings_all_values(std::string const & name
     msg.set_service(g_name_fluid_settings_service_fluid_settings);
     msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
     msg.add_parameter(g_name_fluid_settings_param_all, g_name_fluid_settings_value_true);
-    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+    msg.add_parameter(::communicator::g_name_communicator_param_cache, "no;reply");
     send_message(msg);
 
     start_timer(name);
@@ -611,7 +611,7 @@ void fluid_settings_connection::get_settings_value_with_priority(std::string con
     msg.set_service(g_name_fluid_settings_service_fluid_settings);
     msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
     msg.add_parameter(g_name_fluid_settings_param_priority, priority);
-    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+    msg.add_parameter(::communicator::g_name_communicator_param_cache, "no;reply");
     send_message(msg);
 
     start_timer(name);
@@ -625,7 +625,7 @@ void fluid_settings_connection::get_settings_default_value(std::string const & n
     msg.set_service(g_name_fluid_settings_service_fluid_settings);
     msg.add_parameter(g_name_fluid_settings_param_name, qualify_name(name));
     msg.add_parameter(g_name_fluid_settings_param_default_value, g_name_fluid_settings_value_true);
-    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+    msg.add_parameter(::communicator::g_name_communicator_param_cache, "no;reply");
     send_message(msg);
 
     start_timer(name);
@@ -1030,18 +1030,18 @@ void fluid_settings_connection::msg_fluid_timeout()
 
 void fluid_settings_connection::msg_status(ed::message & msg)
 {
-    if(!msg.has_parameter(communicatord::g_name_communicatord_param_status)
-    || !msg.has_parameter(communicatord::g_name_communicatord_param_service))
+    if(!msg.has_parameter(::communicator::g_name_communicator_param_status)
+    || !msg.has_parameter(::communicator::g_name_communicator_param_service))
     {
         return;
     }
 
-    std::string const status(msg.get_parameter(communicatord::g_name_communicatord_param_status));
-    std::string const service(msg.get_parameter(communicatord::g_name_communicatord_param_service));
+    std::string const status(msg.get_parameter(::communicator::g_name_communicator_param_status));
+    std::string const service(msg.get_parameter(::communicator::g_name_communicator_param_service));
 
     if(service == g_name_fluid_settings_service_fluid_settings)
     {
-        f_registered = status == communicatord::g_name_communicatord_value_up;
+        f_registered = status == ::communicator::g_name_communicator_value_up;
         if(f_registered)
         {
             if(f_watches.empty())
@@ -1073,7 +1073,7 @@ void fluid_settings_connection::listen(std::string const & watches)
     msg.set_command(g_name_fluid_settings_cmd_fluid_settings_listen);
     msg.set_service(g_name_fluid_settings_service_fluid_settings);
     msg.add_parameter(g_name_fluid_settings_param_names, watches);
-    msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+    msg.add_parameter(::communicator::g_name_communicator_param_cache, "no;reply");
     send_message(msg);
 }
 
@@ -1085,10 +1085,10 @@ void fluid_settings_connection::ready(ed::message & msg)
     // get the status of fluid-settings and if UP start listening to
     // the given parameter(s) -- see the client::msg_status() function
     //
-    ed::message reply;
-    reply.set_command(communicatord::g_name_communicatord_cmd_service_status);
-    reply.add_parameter(communicatord::g_name_communicatord_param_service, g_name_fluid_settings_service_fluid_settings);
-    send_message(reply);
+    ed::message service_status;
+    service_status.set_command(::communicator::g_name_communicator_cmd_service_status);
+    service_status.add_parameter(::communicator::g_name_communicator_param_service, g_name_fluid_settings_service_fluid_settings);
+    send_message(service_status);
 
     // the ready() function is not overridden in the communicator class
     // so the following would call the default which generates a warning

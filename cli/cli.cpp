@@ -54,9 +54,9 @@
 #include    <eventdispatcher/names.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/names.h>
+#include    <communicator/names.h>
 
 
 // libaddr
@@ -374,7 +374,7 @@ void cli::ready()
         msg.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_delete);
         msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
         msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("delete"));
-        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+        msg.add_parameter(communicator::g_name_communicator_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("get"))
@@ -382,7 +382,7 @@ void cli::ready()
         msg.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_get);
         msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
         msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("get"));
-        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+        msg.add_parameter(communicator::g_name_communicator_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("get-default"))
@@ -391,7 +391,7 @@ void cli::ready()
         msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
         msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("get-default"));
         msg.add_parameter(fluid_settings::g_name_fluid_settings_param_default_value, "true");
-        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+        msg.add_parameter(communicator::g_name_communicator_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("list-all")
@@ -404,7 +404,7 @@ void cli::ready()
         {
             msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("list-options"));
         }
-        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+        msg.add_parameter(communicator::g_name_communicator_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("set"))
@@ -413,7 +413,7 @@ void cli::ready()
         msg.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
         msg.add_parameter(fluid_settings::g_name_fluid_settings_param_name, f_opts.get_string("set"));
         msg.add_parameter(fluid_settings::g_name_fluid_settings_param_value, f_opts.get_string("set", 1));
-        msg.add_parameter(communicatord::g_name_communicatord_param_cache, "no;reply");
+        msg.add_parameter(communicator::g_name_communicator_param_cache, "no;reply");
         f_client->send_message(msg);
     }
     else if(f_opts.is_defined("watch")

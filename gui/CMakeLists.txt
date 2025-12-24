@@ -52,7 +52,7 @@ if(Qt5Core_FOUND AND Qt5Widgets_FOUND AND EventDispatcherQt_FOUND)
         PUBLIC
             ${PROJECT_BINARY_DIR}
             ${ADVGETOPT_INCLUDE_DIRS}
-            ${COMMUNICATORD_INCLUDE_DIRS}
+            ${COMMUNICATOR_INCLUDE_DIRS}
             ${EVENTDISPATCHER_INCLUDE_DIRS}
             ${LIBADDR_INCLUDE_DIRS}
             ${LIBEXCEPT_INCLUDE_DIRS}
@@ -64,7 +64,7 @@ if(Qt5Core_FOUND AND Qt5Widgets_FOUND AND EventDispatcherQt_FOUND)
     target_link_libraries(${PROJECT_NAME}
         fluid-settings
         ${ADVGETOPT_LIBRARIES}
-        ${COMMUNICATORD_LIBRARIES}
+        ${COMMUNICATOR_LIBRARIES}
         ${EVENTDISPATCHER_LIBRARIES}
         ${EVENTDISPATCHER_QT_LIBRARIES}
         ${LIBADDR_LIBRARIES}

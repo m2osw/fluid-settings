@@ -23,7 +23,7 @@
  * This file is the declaration of the CLI class.
  *
  * Note that the CLI is a complete client that connects to the
- * snapcommunicator. That way we have full communication with
+ * communicator. That way we have full communication with
  * the fluid-settings service.
  *
  * This also means that we depend on getting a reply from the
@@ -51,9 +51,9 @@
 #include    <eventdispatcher/dispatcher.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/communicator.h>
+#include    <communicator/communicator.h>
 
 
 
@@ -68,8 +68,7 @@ class server;
 
 
 class messenger
-    //: public ed::tcp_client_permanent_message_connection
-    : public communicatord::communicator
+    : public communicator::communicator
 {
 public:
     typedef std::shared_ptr<messenger>      pointer_t;

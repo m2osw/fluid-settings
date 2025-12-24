@@ -50,10 +50,10 @@
 #include    <eventdispatcher/broadcast_message.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/communicator.h>
-#include    <communicatord/names.h>
+#include    <communicator/communicator.h>
+#include    <communicator/names.h>
 
 
 // advgetopt
@@ -148,7 +148,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue(communicatord::g_communicatord_default_ip_port.data())
+        , advgetopt::DefaultValue(communicator::g_communicator_default_ip_port.data())
         , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
     ),
     advgetopt::end_options()
@@ -225,7 +225,7 @@ server::server(int argc, char * argv[])
         // exit on any error
         throw advgetopt::getopt_exit("logger options generated an error.", 1);
     }
-    f_messenger->process_communicatord_options();
+    f_messenger->process_communicator_options();
 }
 
 
@@ -616,7 +616,7 @@ void server::send_gossip()
 
     ed::message gossip;
     gossip.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_gossip);
-    gossip.set_server(communicatord::g_name_communicatord_server_any);
+    gossip.set_server(communicator::g_name_communicator_server_any);
     gossip.set_service(fluid_settings::g_name_fluid_settings_service_fluid_settings);
     gossip.add_parameter(fluid_settings::g_name_fluid_settings_param_my_ip, f_listener_address.to_ipv4or6_string(addr::STRING_IP_BRACKET_ADDRESS | addr::STRING_IP_PORT));
     f_messenger->send_message(gossip);

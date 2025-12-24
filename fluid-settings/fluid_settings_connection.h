@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024  Made to Order Software Corp.  All Rights Reserved
+// Copyright (c) 2022-2025  Made to Order Software Corp.  All Rights Reserved
 //
 // https://snapwebsites.org/project/fluid-settings
 // contact@m2osw.com
@@ -60,7 +60,7 @@
 
 // communicatord
 //
-#include    <communicatord/communicator.h>
+#include    <communicator/communicator.h>
 
 
 // eventdispatcher
@@ -102,7 +102,7 @@ enum class fluid_settings_status_t          // v v
 
 
 class fluid_settings_connection
-    : public communicatord::communicator
+    : public communicator::communicator
 {
 public:
     typedef std::shared_ptr<fluid_settings_connection> pointer_t;

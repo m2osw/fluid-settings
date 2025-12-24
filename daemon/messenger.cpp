@@ -43,9 +43,9 @@
 #include    <eventdispatcher/names.h>
 
 
-// communicatord
+// communicator
 //
-#include    <communicatord/names.h>
+#include    <communicator/names.h>
 
 
 // advgetopt

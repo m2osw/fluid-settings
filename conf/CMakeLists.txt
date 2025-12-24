@@ -25,7 +25,7 @@ install(
         fluid_settings.service
 
     DESTINATION
-        ${COMMUNICATORD_SERVICES_INSTALL_DIR}
+        ${COMMUNICATOR_SERVICES_INSTALL_DIR}
 )
 
 # vim: ts=4 sw=4 et
