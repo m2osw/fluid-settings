@@ -78,31 +78,13 @@ namespace
 
 
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
 constexpr advgetopt::options_environment const g_options_environment =
 {
     .f_project_name = "fluid-settings",
     .f_group_name = "fluid-settings",
-    .f_options = nullptr,
     .f_options_files_directory = g_definitions_path,
-    .f_environment_variable_name = nullptr,
-    .f_environment_variable_intro = nullptr,
-    .f_section_variables_name = nullptr,
-    .f_configuration_files = nullptr,
-    .f_configuration_filename = nullptr,
-    .f_configuration_directories = nullptr,
-    .f_environment_flags = 0,
-    .f_help_header = nullptr,
-    .f_help_footer = nullptr,
     .f_version = FLUID_SETTINGS_VERSION_STRING,
-    .f_license = nullptr,
-    .f_copyright = nullptr,
-    .f_build_date = UTC_BUILD_DATE,
-    .f_build_time = UTC_BUILD_TIME,
-    .f_groups = nullptr,
 };
-#pragma GCC diagnostic pop
 
 
 }

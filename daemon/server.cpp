@@ -143,14 +143,6 @@ advgetopt::option const g_options[] =
         , advgetopt::Validator("duration")
         , advgetopt::Help("number of seconds to wait before saving the latest changes; must be a valid positive number.")
     ),
-    advgetopt::define_option(
-          advgetopt::Name("snapcommunicator")
-        , advgetopt::Flags(advgetopt::all_flags<
-              advgetopt::GETOPT_FLAG_GROUP_OPTIONS
-            , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue(communicator::g_communicator_default_ip_port.data())
-        , advgetopt::Help("set the snapcommunicator IP:port to connect to.")
-    ),
     advgetopt::end_options()
 };
 
@@ -178,20 +170,13 @@ constexpr char const * const g_configuration_files[] =
 };
 
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
 constexpr advgetopt::options_environment const g_options_environment =
 {
     .f_project_name = "fluid-settings-daemon",
     .f_group_name = "fluid-settings",
     .f_options = g_options,
-    .f_options_files_directory = nullptr,
     .f_environment_variable_name = "FLUID_SETTINGS_DAEMON",
-    .f_environment_variable_intro = nullptr,
-    .f_section_variables_name = nullptr,
     .f_configuration_files = g_configuration_files,
-    .f_configuration_filename = nullptr,
-    .f_configuration_directories = nullptr,
     .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
     .f_help_header = "Usage: %p [-<opt>] <settings-definitions filename>\n"
                      "where -<opt> is one or more of:",
@@ -201,11 +186,8 @@ constexpr advgetopt::options_environment const g_options_environment =
     .f_copyright = "Copyright (c) 2022-"
                    SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
                    " by Made to Order Software Corporation -- All Rights Reserved",
-    .f_build_date = UTC_BUILD_DATE,
-    .f_build_time = UTC_BUILD_TIME,
     .f_groups = g_group_descriptions,
 };
-#pragma GCC diagnostic pop
 
 
 }
