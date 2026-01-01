@@ -172,7 +172,7 @@ private:
  * This function makes sure the fluid-settings work seemlessly in your
  * messenger client. However, other functions need to be called in the
  * right order to properly complete the initialization process. This
- * includes functions from the communicatord::communicator class which
+ * includes functions from the communicator::communicator class which
  * this class derive from.
  *
  * By default, the fluid_settings_connection listens to your advgetopt options that
@@ -247,7 +247,7 @@ private:
  * \warning
  * The add_fluid_settings_commands() function must be called before the
  * dispatcher add_communicator_commands() which adds a catch all match at
- * the end of the list preventing futher command from being added.
+ * the end of the list preventing further commands from being added.
  *
  * And your server, to ensure everything works, initializes the messenger
  * in this way:
@@ -536,7 +536,7 @@ void fluid_settings_connection::add_fluid_settings_commands()
  * client options using the following:
  *
  * \code
- *     process_communicatord_options();
+ *     process_communicator_options();
  * \endcode
  *
  * Then it checks its own options.

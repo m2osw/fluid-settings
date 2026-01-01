@@ -1,5 +1,5 @@
 usr/sbin
-usr/share/communicatord
+usr/share/communicator
 usr/share/eventdispatcher
 
 conf/fluid-settings.conf                etc/fluid-settings/

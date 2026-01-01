@@ -58,7 +58,7 @@
 #include    "fluid-settings/value.h"
 
 
-// communicatord
+// communicator
 //
 #include    <communicator/communicator.h>
 
