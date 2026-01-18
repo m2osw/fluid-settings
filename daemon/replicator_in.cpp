@@ -81,7 +81,7 @@ namespace fluid_settings_daemon
  * use a private network IP address.
  *
  * \li UDP 127.0.0.1:4041 -- this special port is used to accept UDP
- * signals sent to the snapcommunicator; UDP signals are most often
+ * signals sent to the communicator daemon; UDP signals are most often
  * used to very quickly send signals without having to have a full
  * TCP connection to a daemon
  *
@@ -100,9 +100,14 @@ replicator_in::replicator_in(
     , f_communicator(ed::communicator::instance())
     , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
+#ifdef _DEBUG
+    f_dispatcher->set_trace();
+    f_dispatcher->set_show_matches();
+#endif
     f_dispatcher->add_matches({
         DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_value_changed, &replicator_in::msg_value_changed),
     });
+    f_dispatcher->add_communicator_commands();
 }
 
 

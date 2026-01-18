@@ -29,7 +29,7 @@
 
 // communicator
 //
-#include    <communicator/communicator.h>
+#include    <communicator/communicator_connection.h>
 
 
 // eventdispatcher
@@ -43,7 +43,7 @@
 class FluidWindow
     : public QMainWindow
     , private Ui::FluidWindow
-    , public ::communicator::communicator // the :: at the start is required for moc to generate a compiling file
+    , public communicator::communicator_connection
 {
 private:
     Q_OBJECT

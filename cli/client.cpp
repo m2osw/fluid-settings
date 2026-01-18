@@ -47,18 +47,7 @@ namespace fluid_settings_cli
 client::client(cli * parent, advgetopt::getopt & opts)
     : fluid_settings_connection(opts, get_our_service_name())
     , f_parent(parent)
-    , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
-#ifdef _DEBUG
-    f_dispatcher->set_trace();
-    f_dispatcher->set_show_matches();
-#endif
-    set_dispatcher(f_dispatcher);
-
-    add_fluid_settings_commands();
-
-    // add the communicator commands last (it includes the "always match")
-    f_dispatcher->add_communicator_commands();
 }
 
 

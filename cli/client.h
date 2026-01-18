@@ -79,8 +79,6 @@ public:
 
 private:
     cli *               f_parent = nullptr;
-    ed::dispatcher::pointer_t
-                        f_dispatcher = ed::dispatcher::pointer_t();
 };
 
 

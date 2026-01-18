@@ -58,13 +58,14 @@ replicator_out::replicator_out(
     , f_communicator(ed::communicator::instance())
     , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
-    f_dispatcher->add_communicator_commands();
 #ifdef _DEBUG
     f_dispatcher->set_trace();
+    f_dispatcher->set_show_matches();
 #endif
     f_dispatcher->add_matches({
         DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_value_changed, &replicator_out::msg_value_changed),
     });
+    f_dispatcher->add_communicator_commands();
 }
 
 

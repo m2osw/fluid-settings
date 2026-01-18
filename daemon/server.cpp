@@ -52,7 +52,7 @@
 
 // communicator
 //
-#include    <communicator/communicator.h>
+//#include    <communicator/communicator.h>
 #include    <communicator/names.h>
 
 

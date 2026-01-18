@@ -72,16 +72,10 @@ namespace fluid_settings_daemon
 
 
 messenger::messenger(server * s, advgetopt::getopt & opts)
-    : communicator(opts, "fluid_settings")
+    : communicator_connection(opts, "fluid_settings")
     , f_server(s)
-    , f_dispatcher(std::make_shared<ed::dispatcher>(this))
 {
-#ifdef _DEBUG
-    f_dispatcher->set_trace();
-#endif
-    set_dispatcher(f_dispatcher);
-
-    f_dispatcher->add_matches({
+    get_dispatcher()->add_matches({
         DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_connected, &messenger::msg_connected),
         DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_delete,    &messenger::msg_delete),
         DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_forget,    &messenger::msg_forget),
@@ -91,8 +85,6 @@ messenger::messenger(server * s, advgetopt::getopt & opts)
         DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_listen,    &messenger::msg_listen),
         DISPATCHER_MATCH(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_put,       &messenger::msg_put),
     });
-
-    f_dispatcher->add_communicator_commands();
 }
 
 

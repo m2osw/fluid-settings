@@ -106,8 +106,8 @@ advgetopt::option const g_options[] =
             , advgetopt::GETOPT_FLAG_SHOW_SYSTEM>())
         , advgetopt::EnvironmentVariableName("FLUID_SETTINGS_TIMEOUT")
         , advgetopt::DefaultValue("10s")
-        , advgetopt::Validator("duration")
-        , advgetopt::Help("How long it can take before we assume that fluid-settings is not available.")
+        , advgetopt::Validator("duration(1s...1h)")
+        , advgetopt::Help("How long it can take before we assume that fluid-settings service is not available.")
     ),
 
     // END
@@ -231,16 +231,32 @@ private:
  *
  * \code
  *     messenger::messenger(server * parent, advgetopt::getopt const & opts)
- *         : fluid_settings_connection(opts, "my_service")
+ *         : fluid_settings_connection(opts, "<service-name>")
  *         , f_parent(parent)
- *         , f_dispatcher(std::make_shared<ed::dispatcher<messenger>>(this, g_dispatcher_messages))
  *     {
- *         set_dispatcher(f_dispatcher);
- *         add_fluid_settings_commands();
- *         f_dispatcher->add_communicator_commands();
- *     #ifdef _DEBUG
- *         f_dispatcher->set_trace();
- *     #endif
+ *         // the communicator_connection allocates the dispatcher
+ *
+ *         get_dispatcher()->add_matches({
+ *             // the default macro is very practical but only calls a function in
+ *             // the actual messenger; see below for an explicit std::bind() to
+ *             // call a function of the f_parent object
+ *             //
+ *             DISPATCHER_MATCH(g_name_my_service_cmd_command1, &messenger::msg_command1),
+ *             DISPATCHER_MATCH(g_name_my_service_cmd_command2, &messenger::msg_command2),
+ *             DISPATCHER_MATCH(g_name_my_service_cmd_command3, &messenger::msg_command3),
+ *
+ *             // and for commands in the parent
+ *             //
+ *             ed::define_match(
+ *                   ed::Expression(ed::g_name_ed_cmd_command4)
+ *                 , ed::Callback(std::bind(&messenger::msg_command4, parent, std::placeholders::_1))
+ *                 , ed::MatchFunc(&ed::one_to_one_match) // this is the default, so not required
+ *           // or , ed::MatchFunc(&ed::one_to_one_callback_match) if multiple matches are being added
+ *                 , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
+ *                 // if not specified get the default priority; here we show the case
+ *                 // of a callback which means the message doesn't get eaten
+ *             ),
+ *         });
  *     }
  * \endcode
  *
@@ -249,18 +265,17 @@ private:
  * dispatcher add_communicator_commands() which adds a catch all match at
  * the end of the list preventing further commands from being added.
  *
- * And your server, to ensure everything works, initializes the messenger
+ * And your server, to ensure everything works, initializes its messenger
  * in this way:
  *
  * \code
- *     server::server()
- *         : f_opts(g_options_environment) // partial initialization
- *         , f_messenger(std::make_shared<messenger>(this, f_opts, "<service-name>")
+ *     server::server(int argc, char * argv[])
+ *         , f_messenger(std::make_shared<messenger>(this, f_opts)
  *     {
- *         snaplogger::add_logger_options(f_opts);
- *         f_opts.finish_parsing(argc, argv);
+ *         snaplogger::add_logger_options(get_options());
+ *         get_options().finish_parsing(argc, argv);
  *         if(!snaplogger::process_logger_options(
- *                   f_opts
+ *                   get_options()
  *                 , "/etc/<service-name>/logger"
  *                 , std::cout
  *                 , false))
@@ -283,12 +298,12 @@ private:
  * or configuration files so you can limit the overriding capabilities.
  *
  * Note that you can load the fluid-settings definition files to define the
- * options found in your f_opts. This is quite practical since it means you
+ * options found in your opts. This is quite practical since it means you
  * do not have to define those parameters in two places. To do so, you can
  * explicitly call the option parser:
  *
  * \code
- * f_opts.parse_options_from_file(filename, 1, 1);
+ * get_options.parse_options_from_file(filename, 1, 1);
  * \endcode
  *
  * or properly link your .ini file in the advgetopt share folder:
@@ -306,7 +321,7 @@ private:
  * \endcode
  *
  * And then create a softlink in the advgetopt options directory. Then the
- * file will automatically be loaded when the f_opts objects is initialized.
+ * file will automatically be loaded when the options are initialized.
  *
  * \code
  * /usr/share/advgetopt/options/<filename>.ini -> /usr/share/fluid-settings/definitions/<filename>.ini
@@ -337,19 +352,19 @@ private:
  * f_messenger->add_watch("firewall::uri");
  * \endcode
  *
- * In many cases, the dynamic use of the f_opts each time you need the value
+ * In many cases, the dynamic use of the options each time you need the value
  * is the best way to go, especially if you just need a string.
  *
  * \code
- * std::string const param(f_opts.get_string("my-parameter"));
+ * std::string const param(get_options().get_string("my-parameter"));
  * ...use param as you see fit...
  *
  * -- or if the value has no default defined in the .ini --
  *
  * std::string param("some default");
- * if(g_opts.is_defined("my-parameter"))
+ * if(get_options().is_defined("my-parameter"))
  * {
- *     param = f_opts.get_string("my-parameter");
+ *     param = get_options().get_string("my-parameter");
  * }
  * ...use param as you see fit...
  * \endcode
@@ -412,86 +427,39 @@ private:
  * that the update of the z parameter will arrive last once all three
  * parameters are properly set.
  *
- * \param[in] opts  The options on your command line.
- * \param[in] service_name  Your service name to register with the communicator
- * daemon and receive replies from other services.
+ * \warning
+ * At this point, the \p opts parameter is likely a reference to a
+ * non-initialized options object (a.k.a. empty, no argc/argv passed
+ * through, no base environment). This means all sorts of features are
+ * not yet available.
+ *
+ * \todo
+ * Review the location of the dynamically loaded options. Under the
+ * /usr/share/advgetopts/options/... seems incorrect to me since that
+ * would load those parameters in ALL command line tools. Actually, that
+ * folder is probably not a good idea at all in advgetopt anyway.
+ *
+ * \param[in] opts  The options on your command line, environment variables,
+ *            configuration files, that are to also receive the fluid settings.
+ * \param[in] service_name  Your service name to register with the
+ *            communicator daemon and receive replies from other services.
  *
  * \sa automatic_watch_initialization()
  */
 fluid_settings_connection::fluid_settings_connection(
           advgetopt::getopt & opts
         , std::string const & service_name)
-    : communicator(opts, service_name)
-    , f_opts(opts)
+    : communicator_connection(opts, service_name)
 {
-    f_opts.parse_options_info(g_options, true);
-}
+    get_options().parse_options_info(g_options, true);
 
-
-fluid_settings_connection::~fluid_settings_connection()
-{
-}
-
-
-/** \brief Automatically initialize the list of parameters to watch.
- *
- * This function goes through your list of watches as defined in your f_opts
- * object and add them to this fluid settings connection.
- *
- * The process goes through the list of options found in the f_opts you
- * supplied to the constructor and performs to checks on those options:
- *
- * \li Is the option already defined, if so, do not add it as a watch; this
- * means options defined on the command line, in an environment variable,
- * or a configuration file prior to calling this function are not going to
- * be handled by the fluid-settings daemon
- *
- * \li The option is marked as a "dynamic-configuration" option. This is the
- * way fluid-settings is authorized to add this option to the list of watches.
- *
- * If you call this function early on (in generally, before making the
- * `f_opts.finish_parsing(argc, argv);` call), then the `is_defined()`
- * flag will always be false meaning that the fluid-settings will take
- * over if defined, whether the parameter was set on the command line or
- * not. This is true even if the fluid-settings parameter only has a
- * default value. If the fluid-settings has no default and is not currently
- * set, then the command line, environment variable, or configuration file
- * value will be kept.
- */
-void fluid_settings_connection::automatic_watch_initialization()
-{
-    advgetopt::option_info::map_by_name_t const & options(f_opts.get_options());
-    for(auto const & o : options)
-    {
-        if(!o.second->is_defined()
-        && o.second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION))
-        {
-            add_watch(o.second->get_name());
-        }
-    }
-}
-
-
-/** \brief Add the Fluid Settings commands to your dispatcher.
- *
- * When you create your messenger, you want to include a dispatcher with
- * messages that your support. This will not include any of the commands
- * handled by the communicator or fluid settings daemons. This very
- * function adds the fluid settings commands. To also include the
- * communicator commands, call the add_communicator_commands() as
- * defined in the low level dispatcher (which we may move at some
- * point because these should probably be inside the communicator
- * class).
- *
- * \warning
- * This function has to be called before the add_communicator_commands().
- */
-void fluid_settings_connection::add_fluid_settings_commands()
-{
     ed::dispatcher::pointer_t d(get_dispatcher());
     if(d == nullptr)
     {
-        throw fluid_settings_implementation_error("your fluid settings messenger is missing its dispatcher");
+        // since this is initialized in the communicator_connection it
+        // just cannot happen to be null here
+        //
+        throw fluid_settings_implementation_error("your fluid settings messenger is missing its dispatcher"); // LCOV_EXCL_LINE
     }
 
     // for some messages, we have to make use of a dynamic std::function()
@@ -508,12 +476,6 @@ void fluid_settings_connection::add_fluid_settings_commands()
         DISPATCHER_MATCH(g_name_fluid_settings_cmd_fluid_settings_ready,         &fluid_settings_connection::msg_fluid_ready),
 
         ed::define_match(
-              ed::Expression(::communicator::g_name_communicator_cmd_status)
-            , ed::Callback(std::bind(&fluid_settings_connection::msg_status, this, std::placeholders::_1))
-            , ed::MatchFunc(&ed::one_to_one_callback_match)
-            , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
-        ),
-        ed::define_match(
               ed::Expression(ed::g_name_ed_cmd_invalid)
             , ed::Callback(std::bind(&fluid_settings_connection::msg_fluid_error, this, std::placeholders::_1))
             , ed::MatchFunc(&ed::one_to_one_callback_match)
@@ -526,6 +488,50 @@ void fluid_settings_connection::add_fluid_settings_commands()
             , ed::Priority(ed::dispatcher_match::DISPATCHER_MATCH_CALLBACK_PRIORITY)
         ),
     });
+}
+
+
+fluid_settings_connection::~fluid_settings_connection()
+{
+}
+
+
+/** \brief Automatically initialize the list of parameters to watch.
+ *
+ * This function goes through your list of watches as defined in your options
+ * object and add them to this fluid settings connection.
+ *
+ * The process goes through the list of options found in the options you
+ * supplied to the constructor and performs to checks on those options:
+ *
+ * \li Is the option already defined, if so, do not add it as a watch; this
+ * means options defined on the command line, in an environment variable,
+ * or a configuration file prior to calling this function are not going to
+ * be handled by the fluid-settings daemon
+ *
+ * \li The option is marked as a "dynamic-configuration" option. This is the
+ * way fluid-settings is authorized to add this option to the list of watches.
+ *
+ * If you call this function early on (in generally, before making the
+ * `get_options().finish_parsing(argc, argv);` call), then the `is_defined()`
+ * flag will always be false meaning that the fluid-settings will take
+ * over if defined, whether the parameter was set on the command line or
+ * not. This is true even if the fluid-settings parameter only has a
+ * default value. If the fluid-settings has no default and is not currently
+ * set, then the command line, environment variable, or configuration file
+ * value will be kept.
+ */
+void fluid_settings_connection::automatic_watch_initialization()
+{
+    advgetopt::option_info::map_by_name_t const & options(get_options().get_options());
+    for(auto const & o : options)
+    {
+        if(!o.second->is_defined()
+        && o.second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION))
+        {
+            add_watch(o.second->get_name());
+        }
+    }
 }
 
 
@@ -551,14 +557,52 @@ void fluid_settings_connection::process_fluid_settings_options()
 
 void fluid_settings_connection::unregister_fluid_settings(bool quitting)
 {
-    communicator::unregister_communicator(quitting);
+    unregister_communicator(quitting);
     f_registered = false;
 }
 
 
-bool fluid_settings_connection::is_registered() const
+/** \brief Check whether the client is registered with the service.
+ *
+ * This function returns true if the client messenger is connected
+ * with the fluid-settings service.
+ *
+ * At that point we have a valid connection, however, the dynamic
+ * parameters are not yet all received so it is not considered
+ * ready just yet.
+ *
+ * \return true once registered.
+ */
+bool fluid_settings_connection::are_fluid_settings_registered() const
 {
     return f_registered;
+}
+
+
+/** \brief The fluid-settings client is ready.
+ *
+ * This function returns true once the fluid-settings received all of
+ * the dynamic options whether an error occurred or not.
+ *
+ * Whenever the fluid-settings client connects to the service, it
+ * becomes registered (see are_fluid_settings_registered() for more
+ * details). At that point, the client sends a request to the service
+ * to retrieve all the dynamic parameters it expects.
+ *
+ * Once all the values of the dynamic parameters were sent back to
+ * the fluid-settings client, it client is considered ready. It can
+ * proceed since it has all of the necessary parameters set to the
+ * correct value.
+ *
+ * \note
+ * If are_fluid_settings_registered() returns false, then this
+ * function also returns false.
+ *
+ * \return true once the client is considered ready.
+ */
+bool fluid_settings_connection::are_fluid_settings_ready() const
+{
+    return f_ready;
 }
 
 
@@ -637,15 +681,16 @@ void fluid_settings_connection::start_timer(std::string const & name)
     // timer is re-created each time and deleted when process_timeout()
     // get called
     //
-    std::string const & message_timeout(f_opts.get_string("fluid-settings-timeout"));
+    std::string const & message_timeout(get_options().get_string("fluid-settings-timeout"));
     double timeout(0.0);
     if(!advgetopt::validator_duration::convert_string(
                   message_timeout
                 , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
                 , timeout))
     {
-        // the default is 10 seconds
-        //
+        SNAP_LOG_CONFIGURATION_WARNING
+            << "the --fluid-settings-timeout does not represent a valid duration."
+            << SNAP_LOG_SEND;
         timeout = 10.0;
     }
     f_timer = std::make_shared<fluid_settings_timer>(this, static_cast<std::int64_t>(timeout * 1'000.0), name);
@@ -724,7 +769,7 @@ std::string fluid_settings_connection::qualify_name(std::string const & name)
  */
 void fluid_settings_connection::msg_service_unavailable(ed::message & msg)
 {
-    communicator::msg_service_unavailable(msg);
+    communicator_connection::msg_service_unavailable(msg);
 
     if(!msg.has_parameter(g_name_fluid_settings_param_destination_service))
     {
@@ -753,11 +798,24 @@ void fluid_settings_connection::msg_service_unavailable(ed::message & msg)
 }
 
 
-void fluid_settings_connection::service_status(std::string const & service, std::string const & status)
+void fluid_settings_connection::ready(ed::message & msg)
 {
-    snapdev::NOT_USED(service, status);
+    snapdev::NOT_USED(msg);
 
-    // do nothing, we already handled the message in msg_status()
+    // get the status of the fluid-settings server and if UP start listening
+    // to the given parameter(s)
+    //
+    // see the fluid_settings_connection::service_status() function
+    //
+    ed::message service_status_msg;
+    service_status_msg.set_command(::communicator::g_name_communicator_cmd_service_status);
+    service_status_msg.add_parameter(::communicator::g_name_communicator_param_service, g_name_fluid_settings_service_fluid_settings);
+    send_message(service_status_msg);
+
+    // the ready() function is not overridden in the communicator class
+    // so the following would call the default which generates a warning
+    //
+    //communicator::ready(msg);
 }
 
 
@@ -954,7 +1012,7 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
         std::string const & name(msg.get_parameter(g_name_fluid_settings_param_name));
         std::string const & value(msg.get_parameter(g_name_fluid_settings_param_value));
 
-        // if the option exists in f_opts
+        // remove the intro from the name if present
         //
         std::string opt_name(name);
         std::string const intro(service_name() + "::");
@@ -962,7 +1020,7 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
         {
             opt_name = name.substr(intro.length());
         }
-        advgetopt::option_info::map_by_name_t const & options(f_opts.get_options());
+        advgetopt::option_info::map_by_name_t const & options(get_options().get_options());
         auto const it(options.find(opt_name));
         if(it != options.end()
         && it->second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION))
@@ -970,7 +1028,7 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
             // the option exists and it is a DYNAMIC option so update it
             // automatically
             //
-            f_opts.add_option_from_string(
+            get_options().add_option_from_string(
                   it->second
                 , value
                 , "--fluid-settings--"
@@ -995,6 +1053,7 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
 
 void fluid_settings_connection::msg_fluid_ready(ed::message & msg)
 {
+    f_ready = true;
     if(msg.has_parameter(g_name_fluid_settings_param_error))
     {
         fluid_settings_changed(
@@ -1028,42 +1087,39 @@ void fluid_settings_connection::msg_fluid_timeout()
 }
 
 
-void fluid_settings_connection::msg_status(ed::message & msg)
+void fluid_settings_connection::service_status(std::string const & service, std::string const & status)
 {
-    if(!msg.has_parameter(::communicator::g_name_communicator_param_status)
-    || !msg.has_parameter(::communicator::g_name_communicator_param_service))
+    communicator_connection::service_status(service, status);
+
+    if(service != g_name_fluid_settings_service_fluid_settings)
     {
         return;
     }
 
-    std::string const status(msg.get_parameter(::communicator::g_name_communicator_param_status));
-    std::string const service(msg.get_parameter(::communicator::g_name_communicator_param_service));
-
-    if(service == g_name_fluid_settings_service_fluid_settings)
+    f_registered = status == communicator::g_name_communicator_value_up;
+    if(!f_registered)
     {
-        f_registered = status == ::communicator::g_name_communicator_value_up;
-        if(f_registered)
-        {
-            if(f_watches.empty())
-            {
-                // if there are no parameters to watch, we're ready now
-                // (i.e. all the parameters may have been specified on
-                // the command line or a .conf file in which case it does
-                // not become dynamic fluid settings)
-                //
-                fluid_settings_changed(
-                      fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY
-                    , std::string()
-                    , std::string());
-            }
-            else
-            {
-                listen(snapdev::join_strings(f_watches, ","));
-            }
-        }
+        f_ready = false;
+        return;
     }
 
-    service_status(service, status);
+    if(f_watches.empty())
+    {
+        // if there are no parameters to watch, we're ready now
+        // (i.e. all the parameters may have been specified on
+        // the command line or a .conf file in which case it does
+        // not become dynamic fluid settings)
+        //
+        f_ready = true;
+        fluid_settings_changed(
+              fluid_settings_status_t::FLUID_SETTINGS_STATUS_READY
+            , std::string()
+            , std::string());
+    }
+    else
+    {
+        listen(snapdev::join_strings(f_watches, ","));
+    }
 }
 
 
@@ -1075,25 +1131,6 @@ void fluid_settings_connection::listen(std::string const & watches)
     msg.add_parameter(g_name_fluid_settings_param_names, watches);
     msg.add_parameter(::communicator::g_name_communicator_param_cache, "no;reply");
     send_message(msg);
-}
-
-
-void fluid_settings_connection::ready(ed::message & msg)
-{
-    snapdev::NOT_USED(msg);
-
-    // get the status of fluid-settings and if UP start listening to
-    // the given parameter(s) -- see the client::msg_status() function
-    //
-    ed::message service_status;
-    service_status.set_command(::communicator::g_name_communicator_cmd_service_status);
-    service_status.add_parameter(::communicator::g_name_communicator_param_service, g_name_fluid_settings_service_fluid_settings);
-    send_message(service_status);
-
-    // the ready() function is not overridden in the communicator class
-    // so the following would call the default which generates a warning
-    //
-    //communicator::ready(msg);
 }
 
 

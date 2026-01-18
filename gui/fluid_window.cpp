@@ -145,7 +145,7 @@ constexpr advgetopt::options_environment const g_options_environment =
  */
 FluidWindow::FluidWindow(int argc, char * argv[], QApplication & app)
     : QMainWindow()
-    , communicator(f_opts, "fluid_settings_gui")
+    , communicator_connection(f_opts, "fluid_settings_gui")
     , f_application(app) // Note: &f_application == qApp
     , f_opts(g_options_environment)
     , f_communicator(ed::communicator::instance())

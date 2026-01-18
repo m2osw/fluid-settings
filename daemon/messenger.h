@@ -53,7 +53,7 @@
 
 // communicator
 //
-#include    <communicator/communicator.h>
+#include    <communicator/communicator_connection.h>
 
 
 
@@ -68,7 +68,7 @@ class server;
 
 
 class messenger
-    : public communicator::communicator
+    : public communicator::communicator_connection
 {
 public:
     typedef std::shared_ptr<messenger>      pointer_t;
@@ -99,8 +99,6 @@ private:
     void                connect_from_gossip(ed::message & msg, bool send_reply);
 
     server *            f_server = nullptr;
-    ed::dispatcher::pointer_t
-                        f_dispatcher = ed::dispatcher::pointer_t();
 };
 
 

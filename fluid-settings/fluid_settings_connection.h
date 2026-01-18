@@ -60,7 +60,7 @@
 
 // communicator
 //
-#include    <communicator/communicator.h>
+#include    <communicator/communicator_connection.h>
 
 
 // eventdispatcher
@@ -102,7 +102,7 @@ enum class fluid_settings_status_t          // v v
 
 
 class fluid_settings_connection
-    : public communicator::communicator
+    : public communicator::communicator_connection
 {
 public:
     typedef std::shared_ptr<fluid_settings_connection> pointer_t;
@@ -116,10 +116,10 @@ public:
                         operator = (fluid_settings_connection const &) = delete;
 
     void                automatic_watch_initialization();
-    void                add_fluid_settings_commands();
     void                process_fluid_settings_options();
     void                unregister_fluid_settings(bool quitting);
-    bool                is_registered() const;
+    bool                are_fluid_settings_registered() const;
+    bool                are_fluid_settings_ready() const;
 
     void                get_settings_value(std::string const & name);
     void                get_settings_all_values(std::string const & name);
@@ -130,8 +130,12 @@ public:
 
     // connection_with_send_message implementation
     //
-    virtual void        ready(ed::message & msg) override;
     virtual void        msg_service_unavailable(ed::message & msg) override;
+    virtual void        ready(ed::message & msg) override;
+
+    // communicator implementation
+    //
+    virtual void        service_status(std::string const & service, std::string const & status);
 
     // new callbacks
     //
@@ -141,7 +145,6 @@ public:
                             , std::string const & name
                             , std::string const & value);
     virtual void        fluid_settings_options(advgetopt::string_list_t const & list);
-    virtual void        service_status(std::string const & service, std::string const & status);
 
     // the following are internal message handlers and as such should be
     // considered private
@@ -157,15 +160,13 @@ public:
     void                msg_fluid_ready(ed::message & msg);
     void                msg_fluid_timeout();
 
-    void                msg_status(ed::message & msg);
-
 private:
     void                listen(std::string const & watches);
     void                start_timer(std::string const & name);
     void                stop_timer(std::string const & name);
 
-    advgetopt::getopt & f_opts;
     bool                f_registered = false;
+    bool                f_ready = false;
     std::set<std::string>
                         f_watches = std::set<std::string>();
     ed::connection::pointer_t

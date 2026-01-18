@@ -52,6 +52,7 @@ namespace fluid_settings_cli
 {
 
 
+
 class client;
 typedef std::shared_ptr<client>     client_pointer_t;
 

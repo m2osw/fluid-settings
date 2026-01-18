@@ -21,14 +21,14 @@
 /** \file
  * \brief Exceptions.
  *
- * The following are all the exceptions used by the Event Dispatcher
- * library.
+ * The following are all the exceptions used by the Fluid Settings
+ * service and client.
  */
 
 
 // libexcept
 //
-#include    "libexcept/exception.h"
+#include    <libexcept/exception.h>
 
 
 
@@ -47,5 +47,5 @@ DECLARE_EXCEPTION(fluid_settings_exception, overflow);
 
 
 
-} // namespace ed
+} // namespace fluid_settings
 // vim: ts=4 sw=4 et
