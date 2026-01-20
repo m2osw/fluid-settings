@@ -49,6 +49,7 @@ public:
     listener &          operator = (listener const &) = delete;
 
     // ed::tcp_server_connection
+    //
     virtual void        process_accept() override;
 
 private:

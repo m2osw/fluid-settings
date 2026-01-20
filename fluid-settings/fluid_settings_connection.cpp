@@ -96,18 +96,20 @@ advgetopt::option const g_options[] =
     // FLUID SETTINGS OPTIONS
     //
     advgetopt::define_option(
-          advgetopt::Name("fluid-settings-timeout")
+          advgetopt::Name("fluid-settings::fluid-settings-timeout")
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_COMMAND_LINE
             , advgetopt::GETOPT_FLAG_ENVIRONMENT_VARIABLE
             , advgetopt::GETOPT_FLAG_CONFIGURATION_FILE
+            , advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION
+            , advgetopt::GETOPT_FLAG_REMOVE_NAMESPACE
             , advgetopt::GETOPT_FLAG_REQUIRED
             , advgetopt::GETOPT_FLAG_SHOW_SYSTEM>())
         , advgetopt::EnvironmentVariableName("FLUID_SETTINGS_TIMEOUT")
         , advgetopt::DefaultValue("10s")
         , advgetopt::Validator("duration(1s...1h)")
-        , advgetopt::Help("How long it can take before we assume that fluid-settings service is not available.")
+        , advgetopt::Help("How long it can take before this client assumes that the fluid-settings service is not available.")
     ),
 
     // END
@@ -459,7 +461,7 @@ fluid_settings_connection::fluid_settings_connection(
         // since this is initialized in the communicator_connection it
         // just cannot happen to be null here
         //
-        throw fluid_settings_implementation_error("your fluid settings messenger is missing its dispatcher"); // LCOV_EXCL_LINE
+        throw fluid_settings_implementation_error("your fluid settings messenger is missing its dispatcher."); // LCOV_EXCL_LINE
     }
 
     // for some messages, we have to make use of a dynamic std::function()
@@ -524,12 +526,33 @@ fluid_settings_connection::~fluid_settings_connection()
 void fluid_settings_connection::automatic_watch_initialization()
 {
     advgetopt::option_info::map_by_name_t const & options(get_options().get_options());
+
+    advgetopt::string_set_t aliases;
+
+    for(auto const & o : options)
+    {
+        if(!o.second->is_defined()
+        && o.second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION)
+        && o.second->has_flag(advgetopt::GETOPT_FLAG_ALIAS))
+        {
+            advgetopt::option_info::pointer_t alias(o.second->get_alias_destination());
+            if(alias != nullptr)
+            {
+                aliases.insert(alias->get_name());
+                add_watch(o.second->get_name());
+            }
+        }
+    }
+
     for(auto const & o : options)
     {
         if(!o.second->is_defined()
         && o.second->has_flag(advgetopt::GETOPT_FLAG_DYNAMIC_CONFIGURATION))
         {
-            add_watch(o.second->get_name());
+            if(!aliases.contains(o.second->get_name()))
+            {
+                add_watch(o.second->get_name());
+            }
         }
     }
 }

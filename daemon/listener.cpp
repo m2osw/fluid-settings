@@ -87,6 +87,7 @@ listener::listener(
     , f_server(s)
     , f_communicator(ed::communicator::instance())
 {
+    set_name("listener");
 }
 
 

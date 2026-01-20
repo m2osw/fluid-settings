@@ -44,6 +44,8 @@ gossip_timer::gossip_timer(server * s, std::int64_t timeout_us)
     : timer(timeout_us)
     , f_server(s)
 {
+    set_name("gossip_timer");
+
     // by default, there is nothing to save
     //
     set_enable(false);

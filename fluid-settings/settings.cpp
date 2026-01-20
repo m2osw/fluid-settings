@@ -161,7 +161,7 @@ bool settings::load_definition_file(std::string const & path)
     snapdev::glob_to_list<std::list<std::string>> files;
     if(!files.read_path<>(path + '/' + g_definitions_pattern))
     {
-        SNAP_LOG_WARNING
+        SNAP_LOG_CONFIGURATION_WARNING
             << "no fluid-settings definition files found in \""
             << path
             << "\" (with pattern \""
@@ -185,7 +185,8 @@ bool settings::load_definition_file(std::string const & path)
                       f
                     , 2
                     , std::numeric_limits<int>::max()
-                    , true);
+                    , true
+                    , false);
         }
         catch(advgetopt::getopt_logic_error const & e)
         {

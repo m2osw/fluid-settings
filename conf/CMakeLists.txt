@@ -28,4 +28,14 @@ install(
         ${COMMUNICATOR_SERVICES_INSTALL_DIR}
 )
 
+# fluid-settings connection (a.k.a. client) definitions for fluid-settings
+install(
+    FILES
+        fluid-settings.ini
+
+    DESTINATION
+        # See ${FLUIDSETTINGS_DEFINITIONS_INSTALL_DIR} in cmake/FluidSettingsConfig.cmake
+        share/fluid-settings/definitions
+)
+
 # vim: ts=4 sw=4 et
