@@ -33,6 +33,16 @@
 #include    "client.h"
 
 
+// fluid-settings
+//
+#include    <fluid-settings/names.h>
+
+
+// communicator
+//
+#include    <communicator/names.h>
+
+
 // last include
 //
 #include    <snapdev/poison.h>
@@ -139,18 +149,26 @@ void client::service_status(
       std::string const & service
     , std::string const & status)
 {
-    if(service != "fluid_settings")
+    fluid_settings_connection::service_status(service, status);
+
+    if(service != fluid_settings::g_name_fluid_settings_service_fluid_settings)
     {
         return;
     }
 
-    if(status == "up")
+    if(status == communicator::g_name_communicator_value_up)
     {
-        std::cout << "fluid_settings service is up.\n";
+        if(f_parent->is_verbose())
+        {
+            std::cout << "fluid_settings service is up.\n";
+        }
     }
     else
     {
-        std::cout << "fluid_settings service is down.\n";
+        if(f_parent->is_verbose())
+        {
+            std::cout << "fluid_settings service is down.\n";
+        }
 
         f_parent->service_down();
     }

@@ -65,6 +65,7 @@ public:
                         cli(int argc, char * argv[]);
 
     int                 run();
+    bool                is_verbose() const;
     void                fluid_ready();
     void                ready();
     void                setup_watches();
@@ -95,6 +96,7 @@ private:
     client_pointer_t    f_client = client_pointer_t();
     ed::connection::pointer_t
                         f_timer = ed::connection::pointer_t();
+    bool                f_verbose = false;
     bool                f_success = false;
 };
 

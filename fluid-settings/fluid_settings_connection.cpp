@@ -1038,7 +1038,7 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
         // remove the intro from the name if present
         //
         std::string opt_name(name);
-        std::string const intro(service_name() + "::");
+        std::string const intro(advgetopt::option_with_dashes(service_name()) + "::");
         if(name.substr(0, intro.length()) == intro)
         {
             opt_name = name.substr(intro.length());
@@ -1057,6 +1057,26 @@ void fluid_settings_connection::msg_fluid_value_updated(ed::message & msg)
                 , "--fluid-settings--"
                 , advgetopt::string_list_t()
                 , advgetopt::option_source_t::SOURCE_DYNAMIC);
+        }
+        else if(it != options.end())
+        {
+            SNAP_LOG_IMPORTANT
+                << "fluid-setting option \""
+                << opt_name
+                << "\" found, but it is not dynamic. Its value will not be updated to \""
+                << value
+                << "\"."
+                << SNAP_LOG_SEND;
+        }
+        else
+        {
+            SNAP_LOG_MINOR
+                << "received an update of fluid-setting option \""
+                << opt_name
+                << "\" which this service, \""
+                << service_name()
+                << "\", does not know anything about. Request ignored."
+                << SNAP_LOG_SEND;
         }
 
         fluid_settings_changed(

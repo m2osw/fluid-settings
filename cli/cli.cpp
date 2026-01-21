@@ -294,50 +294,36 @@ cli::cli(int argc, char *argv[])
     //
     f_client->automatic_watch_initialization();
 
+    advgetopt::string_list_t const commands{
+        "delete",
+        "get",
+        "get-default",
+        "list-all",
+        "list-options",
+        "list-services",
+        "set",
+        "watch",
+        "watch-if-up",
+    };
     int cmd(0);
-    if(f_opts.is_defined("delete"))
+    for(auto const & c : commands)
     {
-        ++cmd;
-    }
-    if(f_opts.is_defined("get"))
-    {
-        ++cmd;
-    }
-    if(f_opts.is_defined("get-default"))
-    {
-        ++cmd;
-    }
-    if(f_opts.is_defined("list-all"))
-    {
-        ++cmd;
-    }
-    if(f_opts.is_defined("list-options"))
-    {
-        ++cmd;
-    }
-    if(f_opts.is_defined("list-services"))
-    {
-        ++cmd;
-    }
-    if(f_opts.is_defined("set"))
-    {
-        ++cmd;
-    }
-    if(f_opts.is_defined("watch"))
-    {
-        ++cmd;
-    }
-    if(f_opts.is_defined("watch-if-up"))
-    {
-        ++cmd;
+        if(f_opts.is_defined(c))
+        {
+            ++cmd;
+        }
     }
     if(cmd != 1)
     {
         SNAP_LOG_ERROR
-            << "you must specified exactly one command line option such as --delete, --get, --list-services, --list-options, --set, or --watch."
+            << "you must specified exactly one command line option; one of: "
+            << snapdev::join_strings(commands, ", ")
+            << "."
             << SNAP_LOG_SEND;
         throw advgetopt::getopt_exit("incorrect number of commands.", 1);
     }
+
+    f_verbose = f_opts.is_defined("verbose");
 
     f_client->process_fluid_settings_options();
 }
@@ -360,14 +346,19 @@ int cli::run()
 }
 
 
-void cli::fluid_ready()
+bool cli::is_verbose() const
 {
-    std::cout << "fluid ready: all fields were received\n";
+    return f_verbose;
 }
 
 
-void cli::ready()
+void cli::fluid_ready()
 {
+    if(f_verbose)
+    {
+        std::cout << "fluid-settings: connection to fluid-settings service is initialized.\n";
+    }
+
     ed::message msg;
     if(f_opts.is_defined("delete"))
     {
@@ -432,6 +423,15 @@ void cli::ready()
         SNAP_LOG_WARNING
             << "no command found."
             << SNAP_LOG_SEND;
+    }
+}
+
+
+void cli::ready()
+{
+    if(f_verbose)
+    {
+        std::cout << "fluid-settings: client is connected to the communicator daemon.\n";
     }
 }
 
@@ -524,6 +524,7 @@ void cli::list(advgetopt::string_list_t const & options)
             {
                 start_with += "::";
             }
+            start_with = advgetopt::option_with_dashes(start_with);
             for(auto const & o : options)
             {
                 if(o.length() > start_with.length()
@@ -592,7 +593,7 @@ void cli::value(
         , std::string const & value
         , bool is_default)
 {
-    if(f_opts.is_defined("verbose")
+    if(f_verbose
     && is_default)
     {
         std::cout << "the value is not currently set, here is the default value:\n";

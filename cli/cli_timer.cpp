@@ -43,6 +43,7 @@ cli_timer::cli_timer(cli * c, std::int64_t timeout_us)
     : timer(timeout_us)
     , f_cli(c)
 {
+    set_name("timer");
 }
 
 
