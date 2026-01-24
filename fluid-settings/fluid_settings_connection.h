@@ -158,9 +158,11 @@ public:
     void                msg_fluid_value(ed::message & msg);
     void                msg_fluid_value_updated(ed::message & msg);
     void                msg_fluid_ready(ed::message & msg);
-    void                msg_fluid_timeout();
+    void                msg_fluid_timeout(std::string const & name);
 
 private:
+    typedef std::map<std::string, ed::connection::pointer_t>    map_t;
+
     void                listen(std::string const & watches);
     void                start_timer(std::string const & name);
     void                stop_timer(std::string const & name);
@@ -169,8 +171,7 @@ private:
     bool                f_ready = false;
     std::set<std::string>
                         f_watches = std::set<std::string>();
-    ed::connection::pointer_t
-                        f_timer = ed::connection::pointer_t();
+    map_t               f_timer = map_t();
 };
 
 

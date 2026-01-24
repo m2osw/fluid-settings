@@ -123,6 +123,20 @@ advgetopt::option const g_options[] =
 
 
 
+/** \brief The timer used to make sure a reply is sent back.
+ *
+ * The system offers a way to retrieve a value with the get_settings_value()
+ * function. When such is used, the time it takes to get a reply is checked
+ * through this timer. If the timer times out before we get the reply,
+ * the value is forfeited and a TIMEOUT is sent to the client.
+ *
+ * \todo
+ * First we should use an ed::timer with a callback. Second, we re-create
+ * this timer all the time. We should instead create it once and
+ * enable/disable it as required. Finally, I think that since the
+ * client can do many get_settings_value() calls, having a single
+ * timeout may not be ideal.
+ */
 class fluid_settings_timer
     : public ed::timer
 {
@@ -135,8 +149,8 @@ public:
             , std::string const & name)
         : timer(timeout_us)
         , f_fluid_settings(fs)
-        , f_name(name)
     {
+        set_name(name);
     }
 
     fluid_settings_timer(fluid_settings_timer const &) = delete;
@@ -149,17 +163,11 @@ public:
 
     void process_timeout()
     {
-        f_fluid_settings->msg_fluid_timeout();
-    }
-
-    std::string const & get_name() const
-    {
-        return f_name;
+        f_fluid_settings->msg_fluid_timeout(get_name());
     }
 
 private:
     fluid_settings_connection * f_fluid_settings = nullptr;
-    std::string                 f_name = std::string();
 };
 
 
@@ -701,8 +709,8 @@ void fluid_settings_connection::get_settings_default_value(std::string const & n
 
 void fluid_settings_connection::start_timer(std::string const & name)
 {
-    // timer is re-created each time and deleted when process_timeout()
-    // get called
+    // create a new timer for each get request and delete when the
+    // value is returned or process_timeout() gets called
     //
     std::string const & message_timeout(get_options().get_string("fluid-settings-timeout"));
     double timeout(0.0);
@@ -716,18 +724,27 @@ void fluid_settings_connection::start_timer(std::string const & name)
             << SNAP_LOG_SEND;
         timeout = 10.0;
     }
-    f_timer = std::make_shared<fluid_settings_timer>(this, static_cast<std::int64_t>(timeout * 1'000.0), name);
-    ed::communicator::instance()->add_connection(f_timer);
+    ed::connection::pointer_t t(std::make_shared<fluid_settings_timer>(this, static_cast<std::int64_t>(timeout * 1'000.0), name));
+    if(ed::communicator::instance()->add_connection(t))
+    {
+        f_timer[name] = t;
+    }
+    else
+    {
+        SNAP_LOG_RECOVERABLE_ERROR
+            << "could not add timeout timer to the communicator."
+            << SNAP_LOG_SEND;
+    }
 }
 
 
 void fluid_settings_connection::stop_timer(std::string const & name)
 {
-    if(f_timer != nullptr
-    && f_timer->get_name() == name)
+    auto it(f_timer.find(name));
+    if(it != f_timer.end())
     {
-        ed::communicator::instance()->remove_connection(f_timer);
-        f_timer.reset();
+        ed::communicator::instance()->remove_connection(it->second);
+        f_timer.erase(it);
     }
 }
 
@@ -844,16 +861,36 @@ void fluid_settings_connection::ready(ed::message & msg)
 
 void fluid_settings_connection::fluid_settings_changed(fluid_settings_status_t status, std::string const & name, std::string const & value)
 {
-    snapdev::NOT_USED(status, value);
+    snapdev::NOT_USED(value);
 
     // do nothing, we call this function from all the handlers used to manage
     // the fluid-settings messages and give a chance to the user messenger to
     // override this function also the base function should also be called to
-    // clear the timer
+    // clear the timer and handle fluid-settings dynamic options
 
     if(!name.empty())
     {
         stop_timer(name);
+
+        switch(status)
+        {
+        case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_VALUE:
+        case fluid_settings::fluid_settings_status_t::FLUID_SETTINGS_STATUS_NEW_VALUE:
+            // Note: although we could adjust the timer on this event, I do not
+            //       see the point; it's usually going to be a really small
+            //       number either way
+            //
+            //if(name == "fluid-settings::fluid-settings-timeout")
+            //{
+            //    ...
+            //}
+            break;
+
+        default:
+            // ignore other cases
+            break;
+
+        }
     }
 }
 
@@ -1114,19 +1151,15 @@ void fluid_settings_connection::msg_fluid_ready(ed::message & msg)
 }
 
 
-void fluid_settings_connection::msg_fluid_timeout()
+void fluid_settings_connection::msg_fluid_timeout(std::string const & name)
 {
     // this function is only supposed to be called by the timer whenever it
-    // times out (it's process_timeout() function gets called) so the
-    // f_timer pointer should never be null here
+    // times out (it's process_timeout() function gets called)
     //
-    if(f_timer != nullptr)
-    {
-        fluid_settings_changed(
-              fluid_settings_status_t::FLUID_SETTINGS_STATUS_TIMEOUT
-            , f_timer->get_name()
-            , std::string());
-    }
+    fluid_settings_changed(
+          fluid_settings_status_t::FLUID_SETTINGS_STATUS_TIMEOUT
+        , name
+        , std::string());
 }
 
 
