@@ -1163,9 +1163,12 @@ void fluid_settings_connection::msg_fluid_timeout(std::string const & name)
 }
 
 
-void fluid_settings_connection::service_status(std::string const & service, std::string const & status)
+void fluid_settings_connection::service_status(
+      std::string const & server
+    , std::string const & service
+    , std::string const & status)
 {
-    communicator_connection::service_status(service, status);
+    communicator_connection::service_status(server, service, status);
 
     if(service != g_name_fluid_settings_service_fluid_settings)
     {

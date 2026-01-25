@@ -514,6 +514,20 @@ void settings::load(std::string const & filename)
                 , advgetopt::SECTION_OPERATOR_CPP);
     advgetopt::conf_file::pointer_t data(advgetopt::conf_file::get_conf_file(setup));
 
+    int const e(data->get_errno());
+    if(e != 0)
+    {
+        SNAP_LOG_RECOVERABLE_ERROR
+            << "could not load the fluid settings from file \""
+            << filename
+            << "\". Error: "
+            << e
+            << ", \""
+            << strerror(e)
+            << "\"."
+            << SNAP_LOG_SEND;
+    }
+
     for(auto const & p : data->get_parameters())
     {
         std::vector<std::string> sections;
@@ -594,7 +608,19 @@ void settings::save(std::string const & filename)
         }
     }
 
-    data->save_configuration(".bak", true, false);
+    if(!data->save_configuration(".bak", true, false))
+    {
+        int const e(data->get_errno());
+        SNAP_LOG_RECOVERABLE_ERROR
+            << "could not save the fluid settings to file \""
+            << filename
+            << "\". Error: "
+            << e
+            << ", \""
+            << strerror(e)
+            << "\"."
+            << SNAP_LOG_SEND;
+    }
 }
 
 

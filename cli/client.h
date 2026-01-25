@@ -74,7 +74,8 @@ public:
     virtual void        fluid_settings_options(
                               advgetopt::string_list_t const & options) override;
     virtual void        service_status(
-                              std::string const & service
+                              std::string const & server
+                            , std::string const & service
                             , std::string const & status) override;
 
 private:

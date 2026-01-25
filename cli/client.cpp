@@ -146,10 +146,11 @@ void client::fluid_failed(ed::message & msg)
 
 
 void client::service_status(
-      std::string const & service
+      std::string const & server
+    , std::string const & service
     , std::string const & status)
 {
-    fluid_settings_connection::service_status(service, status);
+    fluid_settings_connection::service_status(server, service, status);
 
     if(service != fluid_settings::g_name_fluid_settings_service_fluid_settings)
     {
