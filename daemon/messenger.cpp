@@ -410,7 +410,6 @@ void messenger::connect_from_gossip(ed::message & msg, bool send_reply)
         reply.add_parameter(ed::g_name_ed_param_message, "you connect to us");
     }
 
-
     if(send_reply)
     {
         reply.set_command(fluid_settings::g_name_fluid_settings_cmd_fluid_settings_connected);

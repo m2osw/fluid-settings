@@ -2,6 +2,13 @@ usr/lib/libfluid-settings.so.*
 usr/bin/fluid-settings-cli
 usr/bin/install-fluid-settings-definitions
 
+# The following is used by the library so we install it along the library
+# Especially, any service that has some fluid-settings definitions will
+# have to load those settings and send them to the fluid-settings server
+# in some way (at the moment this does not happen and it means the service
+# will refuse definitions installed on other computers--see TODO.md)
+usr/share/fluid-settings/definitions
+
 conf/README.md                                     etc/fluid-settings/fluid-settings.d/
 conf/logger/fluid-settings-cli.conf                etc/fluid-settings/logger
 conf/logger/README.md                              etc/fluid-settings/logger/fluid-settings.d/

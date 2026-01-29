@@ -70,6 +70,7 @@ namespace fluid_settings_daemon
  * \warning
  * At this time the \p max_connections parameter is ignored.
  *
+ * \param[in] s  The server managing this listener.
  * \param[in] address  The address:port to listen on.
  * \param[in] max_connections  The maximum number of connections to keep.
  */
@@ -100,6 +101,7 @@ void listener::process_accept()
     if(new_client == nullptr)
     {
         // an error occurred, report in the logs
+        //
         int const e(errno);
         SNAP_LOG_ERROR
             << "somehow accept() failed with errno: "
@@ -113,76 +115,13 @@ void listener::process_accept()
     replicator_in::pointer_t service(std::make_shared<replicator_in>(
                   f_server
                 , new_client));
-
-//    // TBD: is that a really weak test?
-//    //
-//    //QString const addr(service->get_remote_address());
-//    // the get_remote_address() function may return an IP and a port so
-//    // parse that to remove the port; also remote_addr() has a function
-//    // that tells us whether the IP is private, local, or public
-//    //
-//    addr::addr const remote_addr(service->get_remote_address());
-//    addr::addr::network_type_t const network_type(remote_addr.get_network_type());
-//    if(f_local)
-//    {
-//        if(network_type != addr::addr::network_type_t::NETWORK_TYPE_LOOPBACK)
-//        {
-//            // TODO: look into making this an ERROR() again and return, in
-//            //       effect viewing the error as a problem and refusing the
-//            //       connection (we had a problem with the IP detection
-//            //       which should be resolved now that we use the `addr`
-//            //       class
-//            //
-//            SNAP_LOG_WARNING
-//                << "received what should be a local connection from \""
-//                << service->get_remote_address().to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT)
-//                << "\"."
-//                << SNAP_LOG_SEND;
-//            //return;
-//        }
-//
-//        // set a default name in each new connection, this changes
-//        // whenever we receive a REGISTER message from that connection
-//        //
-//        service->set_name("client connection");
-//
-//        service->set_server_name(f_server_name);
-//    }
-//    else
-//    {
-//        if(network_type == addr::addr::network_type_t::NETWORK_TYPE_LOOPBACK)
-//        {
-//            SNAP_LOG_ERROR
-//                << "received what should be a remote connection from \""
-//                << service->get_remote_address().to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT)
-//                << "\"."
-//                << SNAP_LOG_SEND;
-//            return;
-//        }
-//
-//        // set a name for remote connections
-//        //
-//        // the following name includes a space which prevents someone
-//        // from send to such a connection, which is certainly a good
-//        // thing since there can be duplicate and that name is not
-//        // sensible as a destination
-//        //
-//        // we will change the name once we receive the CONNECT message
-//        // and as we send the ACCEPT message
-//        //
-//        service->set_name(
-//                  std::string("remote connection from: ")
-//                + service->get_remote_address().to_ipv4or6_string(addr::addr::string_ip_t::STRING_IP_PORT));
-//        service->mark_as_remote();
-//    }
-
     if(f_communicator->add_connection(service))
     {
         f_server->add_replicator(service);
     }
     else
     {
-        SNAP_LOG_ERROR
+        SNAP_LOG_RECOVERABLE_ERROR
             << "new replicator_in connection could not be added to the ed::communicator."
             << SNAP_LOG_SEND;
     }

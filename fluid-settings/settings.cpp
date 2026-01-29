@@ -77,7 +77,6 @@ namespace
 
 
 
-
 constexpr advgetopt::options_environment const g_options_environment =
 {
     .f_project_name = "fluid-settings",
@@ -87,8 +86,8 @@ constexpr advgetopt::options_environment const g_options_environment =
 };
 
 
-}
-// no name namespace
+
+} // no name namespace
 
 
 
@@ -120,7 +119,7 @@ constexpr advgetopt::options_environment const g_options_environment =
  * only one path as the input string.
  *
  * \param[in] paths  A list of colon separated paths used to read all the
- * available definitions.
+ * available definitions from .ini files.
  *
  * \return true if some configuration files were found, false otherwise.
  */
