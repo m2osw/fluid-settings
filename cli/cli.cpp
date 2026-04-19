@@ -172,8 +172,8 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_COMMANDS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::DefaultValue("10")
-        , advgetopt::Validator("duration")
+        , advgetopt::DefaultValue("10s")
+        , advgetopt::Validator("duration(1...)")
         , advgetopt::Help("time given for a message to be sent and a reply received.")
     ),
     advgetopt::define_option(
@@ -336,6 +336,7 @@ int cli::run()
     advgetopt::validator_duration::convert_string(
                   timeout_str
                 , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                , 1.0
                 , duration);
     f_timer = std::make_shared<cli_timer>(this, duration * 1'000'000LL);
     f_communicator->add_connection(f_timer);

@@ -115,7 +115,7 @@ advgetopt::option const g_options[] =
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("60s")
-        , advgetopt::Validator("duration")
+        , advgetopt::Validator("duration(1...)")
         , advgetopt::Help("number of seconds to wait before sending another FLUID_SETTINGS_GOSSIP message.")
     ),
     advgetopt::define_option(
@@ -140,8 +140,8 @@ advgetopt::option const g_options[] =
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
         , advgetopt::DefaultValue("5s")
-        , advgetopt::Validator("duration")
-        , advgetopt::Help("number of seconds to wait before saving the latest changes; must be a valid positive number.")
+        , advgetopt::Validator("duration(1...)")
+        , advgetopt::Help("number of seconds to wait before saving the latest changes; must be a valid positive number (1 or more).")
     ),
     advgetopt::end_options()
 };
@@ -273,11 +273,12 @@ bool server::prepare_listener()
 
 bool server::prepare_save_timer()
 {
-    std::string const & timeout(f_opts.get_string("save-timeout"));
+    std::string const & timeout(f_opts.get_string("save_timeout"));
     double seconds(0.0);
     if(!advgetopt::validator_duration::convert_string(
               timeout
             , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+            , 1.0
             , seconds))
     {
         SNAP_LOG_FATAL
@@ -307,11 +308,12 @@ bool server::prepare_save_timer()
 
 bool server::prepare_gossip_timer()
 {
-    std::string const timeout(f_opts.get_string("gossip-timeout"));
+    std::string const timeout(f_opts.get_string("gossip_timeout"));
     double gossip_timeout(0.0);
     advgetopt::validator_duration::convert_string(
           timeout
         , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+        , 1.0
         , gossip_timeout);
     if(gossip_timeout <= 0.0)
     {

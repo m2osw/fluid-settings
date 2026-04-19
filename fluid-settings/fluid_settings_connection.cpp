@@ -712,11 +712,12 @@ void fluid_settings_connection::start_timer(std::string const & name)
     // create a new timer for each get request and delete when the
     // value is returned or process_timeout() gets called
     //
-    std::string const & message_timeout(get_options().get_string("fluid-settings-timeout"));
+    std::string const & message_timeout(get_options().get_string("fluid_settings_timeout"));
     double timeout(0.0);
     if(!advgetopt::validator_duration::convert_string(
                   message_timeout
                 , advgetopt::validator_duration::VALIDATOR_DURATION_DEFAULT_FLAGS
+                , 1.0
                 , timeout))
     {
         SNAP_LOG_CONFIGURATION_WARNING
