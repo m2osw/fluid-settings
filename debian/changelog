@@ -1,3 +1,21 @@
+fluid-settings (1.0.5.0~noble) noble; urgency=high
+
+  * Save the "registered" communicator state.
+  * Fixed the debian/compat issue.
+  * Fixed the timer that was not properly plugged in.
+  * Make use of the communicator_connection which handles the dispatcher.
+  * Use the duration validator for the gossip timeout.
+  * Made the --fluid-settings-timeout dynamic.
+  * Reduce log output to just errors by the CLI.
+  * Fixed the fluid settings connection service name with dashes.
+  * Added error message to logs in case of failure on a load/save.
+  * Added fluid settings message definitions.
+  * Fixed the doxygen setup.
+  * Trying to add a rununittest target. Using server now so not needed.
+  * Various clean ups.
+
+ -- Alexis Wilke <alexis@m2osw.com>  Sat, 15 Aug 2026 14:29:27 -0700
+
 fluid-settings (1.0.4.0~noble) noble; urgency=high
 
   * Cleaned up usage of LOG_ROTATE.
