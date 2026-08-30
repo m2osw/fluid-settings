@@ -17,7 +17,7 @@
   call & `NEW_VALUE` events until we get the COMMIT
 * look into why the `VALUE_CHANGED` message is used to communicate between
   fluid settings daemons (maybe because it's a fluid settings specific channel?)
-* implement the GUI
+* implement the GUI (right now it crashes on startup...)
 * add necessary to have authentication
   - some systems should only be given read access
   - some systems should not be given any access

@@ -16,48 +16,42 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-find_package(Qt5Core)
-find_package(Qt5Widgets)
+find_package(Qt6 COMPONENTS Core Widgets)
 find_package(EventDispatcherQt)
 
-if(Qt5Core_FOUND AND Qt5Widgets_FOUND AND EventDispatcherQt_FOUND)
-
-    set(CMAKE_AUTOMOC TRUE)
+if(Qt6Core_FOUND AND Qt6Widgets_FOUND AND EventDispatcherQt_FOUND)
 
     ##
     ## fluid settings graphical user interface
     ##
     project(fluid-settings-gui)
 
-    qt5_wrap_ui(
-        USER_INTERFACE_HEADERS
-            fluid_settings.ui
-    )
-
-    qt5_add_resources(
-        RESOURCE_FILES
-            resources.qrc
-    )
-
     add_executable(${PROJECT_NAME}
-        ${USER_INTERFACE_HEADERS}
-        ${RESOURCE_FILES}
-
         fluid_window.cpp
         main.cpp
+        messenger.cpp
+
+        fluid_settings.ui
         resources.qrc
+    )
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        AUTOMOC TRUE
+        AUTORCC TRUE
+        AUTOUIC TRUE
     )
 
     target_include_directories(${PROJECT_NAME}
         PUBLIC
-            ${PROJECT_BINARY_DIR}
+            #${PROJECT_BINARY_DIR}
+            ${CMAKE_CURRENT_BINARY_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}
+
             ${ADVGETOPT_INCLUDE_DIRS}
             ${COMMUNICATOR_INCLUDE_DIRS}
             ${EVENTDISPATCHER_INCLUDE_DIRS}
             ${LIBADDR_INCLUDE_DIRS}
             ${LIBEXCEPT_INCLUDE_DIRS}
-            ${Qt5Core_INCLUDE_DIRS}
-            ${Qt5Widgets_INCLUDE_DIRS}
             ${SNAPLOGGER_INCLUDE_DIRS}
     )
 
@@ -71,8 +65,8 @@ if(Qt5Core_FOUND AND Qt5Widgets_FOUND AND EventDispatcherQt_FOUND)
         ${LIBEXCEPT_LIBRARIES}
         ${SNAPLOGGER_LIBRARIES}
 
-        Qt5::Core
-        Qt5::Widgets
+        Qt6::Core
+        Qt6::Widgets
     )
 
     install(

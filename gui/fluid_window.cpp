@@ -28,6 +28,7 @@
 // self
 //
 #include    "fluid_window.h"
+#include    "messenger.h"
 
 #include    "fluid-settings/version.h"
 
@@ -71,7 +72,7 @@ advgetopt::option const g_options[] =
         , advgetopt::Flags(advgetopt::all_flags<
               advgetopt::GETOPT_FLAG_GROUP_OPTIONS
             , advgetopt::GETOPT_FLAG_REQUIRED>())
-        , advgetopt::Help("permanently listen to changes.")
+        , advgetopt::Help("permanently listen for changes.")
     ),
     advgetopt::define_option(
           advgetopt::Name("sleepy")
@@ -100,21 +101,11 @@ advgetopt::group_description const g_group_descriptions[] =
 };
 
 
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
 constexpr advgetopt::options_environment const g_options_environment =
 {
     .f_project_name = "fluid-settings-gui",
     .f_group_name = "fluid-settings",
     .f_options = g_options,
-    .f_options_files_directory = nullptr,
-    .f_environment_variable_name = nullptr,
-    .f_environment_variable_intro = nullptr,
-    .f_section_variables_name = nullptr,
-    .f_configuration_files = nullptr,
-    .f_configuration_filename = nullptr,
-    .f_configuration_directories = nullptr,
     .f_environment_flags = advgetopt::GETOPT_ENVIRONMENT_FLAG_PROCESS_SYSTEM_PARAMETERS,
     .f_help_header = "Usage: %p [-<opt>]\n"
                      "where -<opt> is one or more of:",
@@ -124,11 +115,8 @@ constexpr advgetopt::options_environment const g_options_environment =
     .f_copyright = "Copyright (c) 2022-"
                    SNAPDEV_STRINGIZE(UTC_BUILD_YEAR)
                    " by Made to Order Software Corporation -- All Rights Reserved",
-    .f_build_date = UTC_BUILD_DATE,
-    .f_build_time = UTC_BUILD_TIME,
     .f_groups = g_group_descriptions,
 };
-#pragma GCC diagnostic pop
 
 
 
@@ -145,19 +133,26 @@ constexpr advgetopt::options_environment const g_options_environment =
  */
 FluidWindow::FluidWindow(int argc, char * argv[], QApplication & app)
     : QMainWindow()
-    , communicator_connection(f_opts, "fluid_settings_gui")
+    //, communicator_connection(f_opts, "fluid_settings_gui")
     , f_application(app) // Note: &f_application == qApp
     , f_opts(g_options_environment)
     , f_communicator(ed::communicator::instance())
+    , f_messenger(std::make_shared<messenger>(this, f_opts))
 {
+std::cerr << "--- ready to add logger options...\n";
     snaplogger::add_logger_options(f_opts);
+std::cerr << "--- finish parsing...\n";
     f_opts.finish_parsing(argc, argv);
+std::cerr << "--- process logger options...\n";
     if(!snaplogger::process_logger_options(f_opts, "/etc/fluid-settings/logger"))
     {
         throw advgetopt::getopt_exit("invalid logger options", 1);
     }
-    process_communicator_options();
+std::cerr << "--- process communicator options...\n";
+    f_messenger->process_fluid_settings_options();
+    f_messenger->automatic_watch_initialization();
 
+std::cerr << "--- setup Qt...\n";
     setup_qt_connection();
 
     setWindowIcon(QIcon(":/icons/logo.png"));
@@ -208,6 +203,26 @@ int FluidWindow::run()
 }
 
 
+/** \brief Fluid Settings are ready.
+ *
+ * This function is called whenever the fluid-settings are ready to
+ * communicator with us. This means we can start sending and receiving
+ * changes to the settings and update the window accordingly.
+ *
+ * Here we enable a few buttons in our window.
+ */
+void FluidWindow::ready()
+{
+    // TODO: ...
+}
+
+
+void FluidWindow::quit()
+{
+    // TODO: receive QUIT or STOP from messenger -- simulate a Ctrl-Q
+}
+
+
 void FluidWindow::on_about_to_quit()
 {
     QSettings settings(this);
@@ -238,7 +253,7 @@ void FluidWindow::closeEvent(QCloseEvent * event)
     f_communicator->remove_connection(f_qt_connection);
     f_qt_connection.reset();
 
-    unregister_communicator(false);
+    f_messenger->unregister_communicator(false);
 
     f_communicator->log_connections();
 }

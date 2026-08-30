@@ -15,6 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#pragma once
 
 /** \file
  * \brief Top window for the GUI version of Fluid Settings.
@@ -39,11 +40,13 @@
 
 
 
+class messenger;
+
 
 class FluidWindow
     : public QMainWindow
     , private Ui::FluidWindow
-    , public communicator::communicator_connection
+    //, public communicator::communicator_connection
 {
 private:
     Q_OBJECT
@@ -53,6 +56,8 @@ public:
     virtual                         ~FluidWindow();
 
     int                             run();
+    void                            ready();
+    void                            quit();
 
 protected:
     virtual void                    closeEvent(QCloseEvent * event) override;
@@ -67,6 +72,7 @@ private:
     QApplication &                  f_application;
     advgetopt::getopt               f_opts;
     ed::communicator::pointer_t     f_communicator = ed::communicator::pointer_t();
+    std::shared_ptr<messenger>      f_messenger = std::shared_ptr<messenger>();
     ed::connection::pointer_t       f_qt_connection = ed::connection::pointer_t();
 };
 
