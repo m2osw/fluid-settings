@@ -70,8 +70,6 @@
 
 
 
-
-
 messenger::messenger(FluidWindow * w, advgetopt::getopt & opts)
     : fluid_settings_connection(opts, "fluid_settings_gui")
     , f_window(w)
