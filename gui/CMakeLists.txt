@@ -26,6 +26,8 @@ if(Qt6Core_FOUND AND Qt6Widgets_FOUND AND EventDispatcherQt_FOUND)
     ##
     project(fluid-settings-gui)
 
+    set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
+
     add_executable(${PROJECT_NAME}
         fluid_window.cpp
         main.cpp
